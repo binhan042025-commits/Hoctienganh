@@ -36,6 +36,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <h2>👨‍🎓 Khu vực học sinh</h2>
 <div id="retryWarning"></div>
 <select id="studentGrade" onchange="loadLessons()"></select>
+<button class="gray" onclick="toggleMyScores()">📊 Điểm của tôi</button>
+<div id="myScoresBox" class="hidden"></div>
 <div id="lessonList"></div>
 </div>
 
@@ -232,6 +234,170 @@ const TOPICS=[
 /* ================= NỘI DUNG THẬT THEO SGK GLOBAL SUCCESS — LỚP 3 → 12 (đúng tên & thứ tự Unit, số Unit thật không cố định 25) ================= */
 /* Lưu ý: từ vựng/câu ví dụ/bài tập được biên soạn theo đúng chủ đề và ngữ pháp trọng tâm của từng Unit thật trong SGK, không sao chép nguyên văn SGK. */
 const GRADE_CURRICULA={
+1:[
+{name:"In the school playground",
+ vocab:[["ball","quả bóng","⚽"],["kite","con diều","🪁"],["slide","cầu trượt","🛝"],["swing","xích đu","🎠"],["jump rope","dây nhảy","🪢"],["playground","sân chơi","🏟️"]],
+ grammar:{title:"Từ vựng: In the school playground",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a ball."},
+ sentence:"I can see a kite and a slide.",
+ quiz:[{q:"\"ball\" nghĩa là gì?",opts:["quả bóng","con diều","cầu trượt"],ans:0},{q:"\"kite\" nghĩa là gì?",opts:["con diều","cầu trượt","xích đu"],ans:0},{q:"Từ nào có nghĩa là \"cầu trượt\"?",opts:["slide","swing","jump rope"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["swing","jump rope","playground"],ans:0,img:"🎠"},{q:"Chọn câu đúng:",opts:["This is a ball.","This a ball.","Is this a ball"],ans:0},{q:"\"jump rope\" nghĩa là gì?",opts:["dây nhảy","quả bóng","con diều"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["playground","ball","kite"],ans:0,img:"🏟️"}]},
+{name:"In the dining room",
+ vocab:[["table","cái bàn","🍽️"],["chair","cái ghế","🪑"],["spoon","cái thìa","🥄"],["fork","cái nĩa","🍴"],["bowl","cái bát","🥣"],["cup","cái cốc","☕"]],
+ grammar:{title:"Từ vựng: In the dining room",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a table."},
+ sentence:"I can see a chair and a spoon.",
+ quiz:[{q:"\"table\" nghĩa là gì?",opts:["cái bàn","cái ghế","cái thìa"],ans:0},{q:"\"chair\" nghĩa là gì?",opts:["cái ghế","cái thìa","cái nĩa"],ans:0},{q:"Từ nào có nghĩa là \"cái thìa\"?",opts:["spoon","fork","bowl"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["fork","bowl","cup"],ans:0,img:"🍴"},{q:"Chọn câu đúng:",opts:["This is a table.","This a table.","Is this a table"],ans:0},{q:"\"bowl\" nghĩa là gì?",opts:["cái bát","cái bàn","cái ghế"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["cup","table","chair"],ans:0,img:"☕"}]},
+{name:"At the street market",
+ vocab:[["fruit","hoa quả","🍎"],["vegetable","rau củ","🥦"],["basket","cái giỏ","🧺"],["seller","người bán hàng","🧑‍🌾"],["money","tiền","💰"],["bag","cái túi","👜"]],
+ grammar:{title:"Từ vựng: At the street market",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a fruit."},
+ sentence:"I can see a vegetable and a basket.",
+ quiz:[{q:"\"fruit\" nghĩa là gì?",opts:["hoa quả","rau củ","cái giỏ"],ans:0},{q:"\"vegetable\" nghĩa là gì?",opts:["rau củ","cái giỏ","người bán hàng"],ans:0},{q:"Từ nào có nghĩa là \"cái giỏ\"?",opts:["basket","seller","money"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["seller","money","bag"],ans:0,img:"🧑‍🌾"},{q:"Chọn câu đúng:",opts:["This is a fruit.","This a fruit.","Is this a fruit"],ans:0},{q:"\"money\" nghĩa là gì?",opts:["tiền","hoa quả","rau củ"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bag","fruit","vegetable"],ans:0,img:"👜"}]},
+{name:"In the bedroom",
+ vocab:[["bed","cái giường","🛏️"],["pillow","cái gối","🛌"],["window","cửa sổ","🪟"],["lamp","cái đèn","💡"],["clock","đồng hồ","🕰️"],["toy","đồ chơi","🧸"]],
+ grammar:{title:"Từ vựng: In the bedroom",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a bed."},
+ sentence:"I can see a pillow and a window.",
+ quiz:[{q:"\"bed\" nghĩa là gì?",opts:["cái giường","cái gối","cửa sổ"],ans:0},{q:"\"pillow\" nghĩa là gì?",opts:["cái gối","cửa sổ","cái đèn"],ans:0},{q:"Từ nào có nghĩa là \"cửa sổ\"?",opts:["window","lamp","clock"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["lamp","clock","toy"],ans:0,img:"💡"},{q:"Chọn câu đúng:",opts:["This is a bed.","This a bed.","Is this a bed"],ans:0},{q:"\"clock\" nghĩa là gì?",opts:["đồng hồ","cái giường","cái gối"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["toy","bed","pillow"],ans:0,img:"🧸"}]},
+{name:"At the fish and chip shop",
+ vocab:[["fish","cá","🐟"],["chips","khoai tây chiên","🍟"],["shop","cửa hàng","🏪"],["plate","cái đĩa","🍽️"],["salt","muối","🧂"],["menu","thực đơn","📋"]],
+ grammar:{title:"Từ vựng: At the fish and chip shop",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a fish."},
+ sentence:"I can see a chips and a shop.",
+ quiz:[{q:"\"fish\" nghĩa là gì?",opts:["cá","khoai tây chiên","cửa hàng"],ans:0},{q:"\"chips\" nghĩa là gì?",opts:["khoai tây chiên","cửa hàng","cái đĩa"],ans:0},{q:"Từ nào có nghĩa là \"cửa hàng\"?",opts:["shop","plate","salt"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["plate","salt","menu"],ans:0,img:"🍽️"},{q:"Chọn câu đúng:",opts:["This is a fish.","This a fish.","Is this a fish"],ans:0},{q:"\"salt\" nghĩa là gì?",opts:["muối","cá","khoai tây chiên"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["menu","fish","chips"],ans:0,img:"📋"}]},
+{name:"In the classroom",
+ vocab:[["book","quyển sách","📖"],["pencil","cái bút chì","✏️"],["ruler","cái thước","📏"],["bag","cặp sách","🎒"],["board","bảng","📋"],["chair","cái ghế","🪑"]],
+ grammar:{title:"Từ vựng: In the classroom",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a book."},
+ sentence:"I can see a pencil and a ruler.",
+ quiz:[{q:"\"book\" nghĩa là gì?",opts:["quyển sách","cái bút chì","cái thước"],ans:0},{q:"\"pencil\" nghĩa là gì?",opts:["cái bút chì","cái thước","cặp sách"],ans:0},{q:"Từ nào có nghĩa là \"cái thước\"?",opts:["ruler","bag","board"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bag","board","chair"],ans:0,img:"🎒"},{q:"Chọn câu đúng:",opts:["This is a book.","This a book.","Is this a book"],ans:0},{q:"\"board\" nghĩa là gì?",opts:["bảng","quyển sách","cái bút chì"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["chair","book","pencil"],ans:0,img:"🪑"}]},
+{name:"In the garden",
+ vocab:[["flower","bông hoa","🌸"],["tree","cái cây","🌳"],["grass","cỏ","🌱"],["butterfly","con bướm","🦋"],["bird","con chim","🐦"],["bee","con ong","🐝"]],
+ grammar:{title:"Từ vựng: In the garden",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a flower."},
+ sentence:"I can see a tree and a grass.",
+ quiz:[{q:"\"flower\" nghĩa là gì?",opts:["bông hoa","cái cây","cỏ"],ans:0},{q:"\"tree\" nghĩa là gì?",opts:["cái cây","cỏ","con bướm"],ans:0},{q:"Từ nào có nghĩa là \"cỏ\"?",opts:["grass","butterfly","bird"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["butterfly","bird","bee"],ans:0,img:"🦋"},{q:"Chọn câu đúng:",opts:["This is a flower.","This a flower.","Is this a flower"],ans:0},{q:"\"bird\" nghĩa là gì?",opts:["con chim","bông hoa","cái cây"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bee","flower","tree"],ans:0,img:"🐝"}]},
+{name:"In the park",
+ vocab:[["pond","cái ao","🌊"],["duck","con vịt","🦆"],["bicycle","xe đạp","🚲"],["balloon","bóng bay","🎈"],["ice cream","kem","🍦"],["bench","ghế dài","💺"]],
+ grammar:{title:"Từ vựng: In the park",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a pond."},
+ sentence:"I can see a duck and a bicycle.",
+ quiz:[{q:"\"pond\" nghĩa là gì?",opts:["cái ao","con vịt","xe đạp"],ans:0},{q:"\"duck\" nghĩa là gì?",opts:["con vịt","xe đạp","bóng bay"],ans:0},{q:"Từ nào có nghĩa là \"xe đạp\"?",opts:["bicycle","balloon","ice cream"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["balloon","ice cream","bench"],ans:0,img:"🎈"},{q:"Chọn câu đúng:",opts:["This is a pond.","This a pond.","Is this a pond"],ans:0},{q:"\"ice cream\" nghĩa là gì?",opts:["kem","cái ao","con vịt"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bench","pond","duck"],ans:0,img:"💺"}]},
+{name:"In the shop",
+ vocab:[["shoes","giày","👟"],["hat","mũ","🧢"],["dress","váy","👗"],["T-shirt","áo phông","👕"],["price","giá tiền","🏷️"],["bag","cái túi","👜"]],
+ grammar:{title:"Từ vựng: In the shop",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a shoes."},
+ sentence:"I can see a hat and a dress.",
+ quiz:[{q:"\"shoes\" nghĩa là gì?",opts:["giày","mũ","váy"],ans:0},{q:"\"hat\" nghĩa là gì?",opts:["mũ","váy","áo phông"],ans:0},{q:"Từ nào có nghĩa là \"váy\"?",opts:["dress","T-shirt","price"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["T-shirt","price","bag"],ans:0,img:"👕"},{q:"Chọn câu đúng:",opts:["This is a shoes.","This a shoes.","Is this a shoes"],ans:0},{q:"\"price\" nghĩa là gì?",opts:["giá tiền","giày","mũ"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bag","shoes","hat"],ans:0,img:"👜"}]},
+{name:"At the zoo",
+ vocab:[["lion","sư tử","🦁"],["elephant","voi","🐘"],["monkey","khỉ","🐒"],["giraffe","hươu cao cổ","🦒"],["tiger","hổ","🐯"],["snake","rắn","🐍"]],
+ grammar:{title:"Từ vựng: At the zoo",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a lion."},
+ sentence:"I can see a elephant and a monkey.",
+ quiz:[{q:"\"lion\" nghĩa là gì?",opts:["sư tử","voi","khỉ"],ans:0},{q:"\"elephant\" nghĩa là gì?",opts:["voi","khỉ","hươu cao cổ"],ans:0},{q:"Từ nào có nghĩa là \"khỉ\"?",opts:["monkey","giraffe","tiger"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["giraffe","tiger","snake"],ans:0,img:"🦒"},{q:"Chọn câu đúng:",opts:["This is a lion.","This a lion.","Is this a lion"],ans:0},{q:"\"tiger\" nghĩa là gì?",opts:["hổ","sư tử","voi"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["snake","lion","elephant"],ans:0,img:"🐍"}]},
+{name:"At the bus stop",
+ vocab:[["bus","xe buýt","🚌"],["ticket","vé","🎫"],["road","con đường","🛣️"],["wait","chờ đợi","⏳"],["driver","tài xế","🚍"],["bench","ghế dài","💺"]],
+ grammar:{title:"Từ vựng: At the bus stop",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a bus."},
+ sentence:"I can see a ticket and a road.",
+ quiz:[{q:"\"bus\" nghĩa là gì?",opts:["xe buýt","vé","con đường"],ans:0},{q:"\"ticket\" nghĩa là gì?",opts:["vé","con đường","chờ đợi"],ans:0},{q:"Từ nào có nghĩa là \"con đường\"?",opts:["road","wait","driver"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["wait","driver","bench"],ans:0,img:"⏳"},{q:"Chọn câu đúng:",opts:["This is a bus.","This a bus.","Is this a bus"],ans:0},{q:"\"driver\" nghĩa là gì?",opts:["tài xế","xe buýt","vé"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bench","bus","ticket"],ans:0,img:"💺"}]},
+{name:"At the lake",
+ vocab:[["lake","hồ nước","🏞️"],["boat","thuyền","⛵"],["fish","cá","🐟"],["duck","con vịt","🦆"],["swim","bơi","🏊"],["water","nước","💧"]],
+ grammar:{title:"Từ vựng: At the lake",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a lake."},
+ sentence:"I can see a boat and a fish.",
+ quiz:[{q:"\"lake\" nghĩa là gì?",opts:["hồ nước","thuyền","cá"],ans:0},{q:"\"boat\" nghĩa là gì?",opts:["thuyền","cá","con vịt"],ans:0},{q:"Từ nào có nghĩa là \"cá\"?",opts:["fish","duck","swim"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["duck","swim","water"],ans:0,img:"🦆"},{q:"Chọn câu đúng:",opts:["This is a lake.","This a lake.","Is this a lake"],ans:0},{q:"\"swim\" nghĩa là gì?",opts:["bơi","hồ nước","thuyền"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["water","lake","boat"],ans:0,img:"💧"}]},
+{name:"In the school canteen",
+ vocab:[["rice","cơm","🍚"],["noodles","mì","🍜"],["soup","canh","🍲"],["bread","bánh mì","🍞"],["milk","sữa","🥛"],["fruit","hoa quả","🍎"]],
+ grammar:{title:"Từ vựng: In the school canteen",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a rice."},
+ sentence:"I can see a noodles and a soup.",
+ quiz:[{q:"\"rice\" nghĩa là gì?",opts:["cơm","mì","canh"],ans:0},{q:"\"noodles\" nghĩa là gì?",opts:["mì","canh","bánh mì"],ans:0},{q:"Từ nào có nghĩa là \"canh\"?",opts:["soup","bread","milk"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bread","milk","fruit"],ans:0,img:"🍞"},{q:"Chọn câu đúng:",opts:["This is a rice.","This a rice.","Is this a rice"],ans:0},{q:"\"milk\" nghĩa là gì?",opts:["sữa","cơm","mì"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["fruit","rice","noodles"],ans:0,img:"🍎"}]},
+{name:"In the toy shop",
+ vocab:[["doll","búp bê","🪆"],["robot","người máy","🤖"],["car","ô tô","🚗"],["train","tàu hỏa","🚂"],["ball","quả bóng","⚽"],["teddy bear","gấu bông","🧸"]],
+ grammar:{title:"Từ vựng: In the toy shop",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a doll."},
+ sentence:"I can see a robot and a car.",
+ quiz:[{q:"\"doll\" nghĩa là gì?",opts:["búp bê","người máy","ô tô"],ans:0},{q:"\"robot\" nghĩa là gì?",opts:["người máy","ô tô","tàu hỏa"],ans:0},{q:"Từ nào có nghĩa là \"ô tô\"?",opts:["car","train","ball"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["train","ball","teddy bear"],ans:0,img:"🚂"},{q:"Chọn câu đúng:",opts:["This is a doll.","This a doll.","Is this a doll"],ans:0},{q:"\"ball\" nghĩa là gì?",opts:["quả bóng","búp bê","người máy"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["teddy bear","doll","robot"],ans:0,img:"🧸"}]},
+{name:"At the football match",
+ vocab:[["football","bóng đá","⚽"],["goal","khung thành","🥅"],["team","đội bóng","👥"],["referee","trọng tài","🧑‍⚖️"],["whistle","còi","📯"],["win","chiến thắng","🏆"]],
+ grammar:{title:"Từ vựng: At the football match",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a football."},
+ sentence:"I can see a goal and a team.",
+ quiz:[{q:"\"football\" nghĩa là gì?",opts:["bóng đá","khung thành","đội bóng"],ans:0},{q:"\"goal\" nghĩa là gì?",opts:["khung thành","đội bóng","trọng tài"],ans:0},{q:"Từ nào có nghĩa là \"đội bóng\"?",opts:["team","referee","whistle"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["referee","whistle","win"],ans:0,img:"🧑‍⚖️"},{q:"Chọn câu đúng:",opts:["This is a football.","This a football.","Is this a football"],ans:0},{q:"\"whistle\" nghĩa là gì?",opts:["còi","bóng đá","khung thành"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["win","football","goal"],ans:0,img:"🏆"}]},
+{name:"At home",
+ vocab:[["house","ngôi nhà","🏠"],["family","gia đình","👨‍👩‍👧‍👦"],["kitchen","nhà bếp","🍳"],["garden","khu vườn","🌳"],["living room","phòng khách","🛋️"],["door","cửa ra vào","🚪"]],
+ grammar:{title:"Từ vựng: At home",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a house."},
+ sentence:"I can see a family and a kitchen.",
+ quiz:[{q:"\"house\" nghĩa là gì?",opts:["ngôi nhà","gia đình","nhà bếp"],ans:0},{q:"\"family\" nghĩa là gì?",opts:["gia đình","nhà bếp","khu vườn"],ans:0},{q:"Từ nào có nghĩa là \"nhà bếp\"?",opts:["kitchen","garden","living room"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["garden","living room","door"],ans:0,img:"🌳"},{q:"Chọn câu đúng:",opts:["This is a house.","This a house.","Is this a house"],ans:0},{q:"\"living room\" nghĩa là gì?",opts:["phòng khách","ngôi nhà","gia đình"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["door","house","family"],ans:0,img:"🚪"}]}
+],
+2:[
+{name:"At my birthday party",
+ vocab:[["cake","bánh kem","🎂"],["candle","nến","🕯️"],["balloon","bóng bay","🎈"],["present","quà tặng","🎁"],["party hat","mũ tiệc","🎉"],["friend","bạn bè","🧑‍🤝‍🧑"]],
+ grammar:{title:"Từ vựng: At my birthday party",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a cake."},
+ sentence:"I can see a candle and a balloon.",
+ quiz:[{q:"\"cake\" nghĩa là gì?",opts:["bánh kem","nến","bóng bay"],ans:0},{q:"\"candle\" nghĩa là gì?",opts:["nến","bóng bay","quà tặng"],ans:0},{q:"Từ nào có nghĩa là \"bóng bay\"?",opts:["balloon","present","party hat"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["present","party hat","friend"],ans:0,img:"🎁"},{q:"Chọn câu đúng:",opts:["This is a cake.","This a cake.","Is this a cake"],ans:0},{q:"\"party hat\" nghĩa là gì?",opts:["mũ tiệc","bánh kem","nến"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["friend","cake","candle"],ans:0,img:"🧑‍🤝‍🧑"}]},
+{name:"In the backyard",
+ vocab:[["tree","cái cây","🌳"],["swing","xích đu","🎠"],["flower","bông hoa","🌸"],["grass","cỏ","🌱"],["dog","con chó","🐶"],["ball","quả bóng","⚽"]],
+ grammar:{title:"Từ vựng: In the backyard",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a tree."},
+ sentence:"I can see a swing and a flower.",
+ quiz:[{q:"\"tree\" nghĩa là gì?",opts:["cái cây","xích đu","bông hoa"],ans:0},{q:"\"swing\" nghĩa là gì?",opts:["xích đu","bông hoa","cỏ"],ans:0},{q:"Từ nào có nghĩa là \"bông hoa\"?",opts:["flower","grass","dog"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["grass","dog","ball"],ans:0,img:"🌱"},{q:"Chọn câu đúng:",opts:["This is a tree.","This a tree.","Is this a tree"],ans:0},{q:"\"dog\" nghĩa là gì?",opts:["con chó","cái cây","xích đu"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["ball","tree","swing"],ans:0,img:"⚽"}]},
+{name:"At the seaside",
+ vocab:[["sea","biển","🌊"],["sand","cát","🏖️"],["shell","vỏ sò","🐚"],["sun","mặt trời","☀️"],["swim","bơi","🏊"],["boat","thuyền","⛵"]],
+ grammar:{title:"Từ vựng: At the seaside",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a sea."},
+ sentence:"I can see a sand and a shell.",
+ quiz:[{q:"\"sea\" nghĩa là gì?",opts:["biển","cát","vỏ sò"],ans:0},{q:"\"sand\" nghĩa là gì?",opts:["cát","vỏ sò","mặt trời"],ans:0},{q:"Từ nào có nghĩa là \"vỏ sò\"?",opts:["shell","sun","swim"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["sun","swim","boat"],ans:0,img:"☀️"},{q:"Chọn câu đúng:",opts:["This is a sea.","This a sea.","Is this a sea"],ans:0},{q:"\"swim\" nghĩa là gì?",opts:["bơi","biển","cát"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["boat","sea","sand"],ans:0,img:"⛵"}]},
+{name:"In the countryside",
+ vocab:[["farm","nông trại","🚜"],["field","cánh đồng","🌾"],["cow","con bò","🐄"],["river","con sông","🏞️"],["mountain","ngọn núi","⛰️"],["sky","bầu trời","☁️"]],
+ grammar:{title:"Từ vựng: In the countryside",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a farm."},
+ sentence:"I can see a field and a cow.",
+ quiz:[{q:"\"farm\" nghĩa là gì?",opts:["nông trại","cánh đồng","con bò"],ans:0},{q:"\"field\" nghĩa là gì?",opts:["cánh đồng","con bò","con sông"],ans:0},{q:"Từ nào có nghĩa là \"con bò\"?",opts:["cow","river","mountain"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["river","mountain","sky"],ans:0,img:"🏞️"},{q:"Chọn câu đúng:",opts:["This is a farm.","This a farm.","Is this a farm"],ans:0},{q:"\"mountain\" nghĩa là gì?",opts:["ngọn núi","nông trại","cánh đồng"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["sky","farm","field"],ans:0,img:"☁️"}]},
+{name:"In the classroom",
+ vocab:[["book","quyển sách","📖"],["pencil","cái bút chì","✏️"],["teacher","giáo viên","🧑‍🏫"],["student","học sinh","🧑‍🎓"],["board","bảng","📋"],["desk","cái bàn","🪑"]],
+ grammar:{title:"Từ vựng: In the classroom",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a book."},
+ sentence:"I can see a pencil and a teacher.",
+ quiz:[{q:"\"book\" nghĩa là gì?",opts:["quyển sách","cái bút chì","giáo viên"],ans:0},{q:"\"pencil\" nghĩa là gì?",opts:["cái bút chì","giáo viên","học sinh"],ans:0},{q:"Từ nào có nghĩa là \"giáo viên\"?",opts:["teacher","student","board"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["student","board","desk"],ans:0,img:"🧑‍🎓"},{q:"Chọn câu đúng:",opts:["This is a book.","This a book.","Is this a book"],ans:0},{q:"\"board\" nghĩa là gì?",opts:["bảng","quyển sách","cái bút chì"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["desk","book","pencil"],ans:0,img:"🪑"}]},
+{name:"On the farm",
+ vocab:[["cow","con bò","🐄"],["pig","con lợn","🐷"],["chicken","con gà","🐔"],["horse","con ngựa","🐴"],["duck","con vịt","🦆"],["farmer","nông dân","🧑‍🌾"]],
+ grammar:{title:"Từ vựng: On the farm",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a cow."},
+ sentence:"I can see a pig and a chicken.",
+ quiz:[{q:"\"cow\" nghĩa là gì?",opts:["con bò","con lợn","con gà"],ans:0},{q:"\"pig\" nghĩa là gì?",opts:["con lợn","con gà","con ngựa"],ans:0},{q:"Từ nào có nghĩa là \"con gà\"?",opts:["chicken","horse","duck"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["horse","duck","farmer"],ans:0,img:"🐴"},{q:"Chọn câu đúng:",opts:["This is a cow.","This a cow.","Is this a cow"],ans:0},{q:"\"duck\" nghĩa là gì?",opts:["con vịt","con bò","con lợn"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["farmer","cow","pig"],ans:0,img:"🧑‍🌾"}]},
+{name:"In the kitchen",
+ vocab:[["pot","cái nồi","🍲"],["pan","cái chảo","🍳"],["knife","con dao","🔪"],["spoon","cái thìa","🥄"],["stove","cái bếp","🔥"],["fridge","tủ lạnh","🧊"]],
+ grammar:{title:"Từ vựng: In the kitchen",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a pot."},
+ sentence:"I can see a pan and a knife.",
+ quiz:[{q:"\"pot\" nghĩa là gì?",opts:["cái nồi","cái chảo","con dao"],ans:0},{q:"\"pan\" nghĩa là gì?",opts:["cái chảo","con dao","cái thìa"],ans:0},{q:"Từ nào có nghĩa là \"con dao\"?",opts:["knife","spoon","stove"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["spoon","stove","fridge"],ans:0,img:"🥄"},{q:"Chọn câu đúng:",opts:["This is a pot.","This a pot.","Is this a pot"],ans:0},{q:"\"stove\" nghĩa là gì?",opts:["cái bếp","cái nồi","cái chảo"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["fridge","pot","pan"],ans:0,img:"🧊"}]},
+{name:"In the village",
+ vocab:[["house","ngôi nhà","🏠"],["road","con đường","🛣️"],["tree","cái cây","🌳"],["river","con sông","🏞️"],["market","chợ","🏪"],["bicycle","xe đạp","🚲"]],
+ grammar:{title:"Từ vựng: In the village",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a house."},
+ sentence:"I can see a road and a tree.",
+ quiz:[{q:"\"house\" nghĩa là gì?",opts:["ngôi nhà","con đường","cái cây"],ans:0},{q:"\"road\" nghĩa là gì?",opts:["con đường","cái cây","con sông"],ans:0},{q:"Từ nào có nghĩa là \"cái cây\"?",opts:["tree","river","market"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["river","market","bicycle"],ans:0,img:"🏞️"},{q:"Chọn câu đúng:",opts:["This is a house.","This a house.","Is this a house"],ans:0},{q:"\"market\" nghĩa là gì?",opts:["chợ","ngôi nhà","con đường"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bicycle","house","road"],ans:0,img:"🚲"}]},
+{name:"In the grocery store",
+ vocab:[["rice","gạo","🍚"],["milk","sữa","🥛"],["bread","bánh mì","🍞"],["egg","trứng","🥚"],["sugar","đường","🍬"],["oil","dầu ăn","🫗"]],
+ grammar:{title:"Từ vựng: In the grocery store",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a rice."},
+ sentence:"I can see a milk and a bread.",
+ quiz:[{q:"\"rice\" nghĩa là gì?",opts:["gạo","sữa","bánh mì"],ans:0},{q:"\"milk\" nghĩa là gì?",opts:["sữa","bánh mì","trứng"],ans:0},{q:"Từ nào có nghĩa là \"bánh mì\"?",opts:["bread","egg","sugar"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["egg","sugar","oil"],ans:0,img:"🥚"},{q:"Chọn câu đúng:",opts:["This is a rice.","This a rice.","Is this a rice"],ans:0},{q:"\"sugar\" nghĩa là gì?",opts:["đường","gạo","sữa"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["oil","rice","milk"],ans:0,img:"🫗"}]},
+{name:"At the zoo",
+ vocab:[["lion","sư tử","🦁"],["elephant","voi","🐘"],["monkey","khỉ","🐒"],["bear","gấu","🐻"],["zebra","ngựa vằn","🦓"],["panda","gấu trúc","🐼"]],
+ grammar:{title:"Từ vựng: At the zoo",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a lion."},
+ sentence:"I can see a elephant and a monkey.",
+ quiz:[{q:"\"lion\" nghĩa là gì?",opts:["sư tử","voi","khỉ"],ans:0},{q:"\"elephant\" nghĩa là gì?",opts:["voi","khỉ","gấu"],ans:0},{q:"Từ nào có nghĩa là \"khỉ\"?",opts:["monkey","bear","zebra"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bear","zebra","panda"],ans:0,img:"🐻"},{q:"Chọn câu đúng:",opts:["This is a lion.","This a lion.","Is this a lion"],ans:0},{q:"\"zebra\" nghĩa là gì?",opts:["ngựa vằn","sư tử","voi"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["panda","lion","elephant"],ans:0,img:"🐼"}]},
+{name:"In the playground",
+ vocab:[["slide","cầu trượt","🛝"],["swing","xích đu","🎠"],["see-saw","bập bênh","⚖️"],["sandbox","hố cát","🏖️"],["ball","quả bóng","⚽"],["kite","con diều","🪁"]],
+ grammar:{title:"Từ vựng: In the playground",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a slide."},
+ sentence:"I can see a swing and a see-saw.",
+ quiz:[{q:"\"slide\" nghĩa là gì?",opts:["cầu trượt","xích đu","bập bênh"],ans:0},{q:"\"swing\" nghĩa là gì?",opts:["xích đu","bập bênh","hố cát"],ans:0},{q:"Từ nào có nghĩa là \"bập bênh\"?",opts:["see-saw","sandbox","ball"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["sandbox","ball","kite"],ans:0,img:"🏖️"},{q:"Chọn câu đúng:",opts:["This is a slide.","This a slide.","Is this a slide"],ans:0},{q:"\"ball\" nghĩa là gì?",opts:["quả bóng","cầu trượt","xích đu"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["kite","slide","swing"],ans:0,img:"🪁"}]},
+{name:"At the café",
+ vocab:[["coffee","cà phê","☕"],["juice","nước ép","🧃"],["cake","bánh kem","🎂"],["sandwich","bánh mì kẹp","🥪"],["table","cái bàn","🍽️"],["waiter","nhân viên phục vụ","🧑‍🍳"]],
+ grammar:{title:"Từ vựng: At the café",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a coffee."},
+ sentence:"I can see a juice and a cake.",
+ quiz:[{q:"\"coffee\" nghĩa là gì?",opts:["cà phê","nước ép","bánh kem"],ans:0},{q:"\"juice\" nghĩa là gì?",opts:["nước ép","bánh kem","bánh mì kẹp"],ans:0},{q:"Từ nào có nghĩa là \"bánh kem\"?",opts:["cake","sandwich","table"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["sandwich","table","waiter"],ans:0,img:"🥪"},{q:"Chọn câu đúng:",opts:["This is a coffee.","This a coffee.","Is this a coffee"],ans:0},{q:"\"table\" nghĩa là gì?",opts:["cái bàn","cà phê","nước ép"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["waiter","coffee","juice"],ans:0,img:"🧑‍🍳"}]},
+{name:"In the maths class",
+ vocab:[["number","con số","🔢"],["add","cộng","➕"],["subtract","trừ","➖"],["count","đếm","🧮"],["book","quyển sách","📖"],["pencil","cái bút chì","✏️"]],
+ grammar:{title:"Từ vựng: In the maths class",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a number."},
+ sentence:"I can see a add and a subtract.",
+ quiz:[{q:"\"number\" nghĩa là gì?",opts:["con số","cộng","trừ"],ans:0},{q:"\"add\" nghĩa là gì?",opts:["cộng","trừ","đếm"],ans:0},{q:"Từ nào có nghĩa là \"trừ\"?",opts:["subtract","count","book"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["count","book","pencil"],ans:0,img:"🧮"},{q:"Chọn câu đúng:",opts:["This is a number.","This a number.","Is this a number"],ans:0},{q:"\"book\" nghĩa là gì?",opts:["quyển sách","con số","cộng"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["pencil","number","add"],ans:0,img:"✏️"}]},
+{name:"At home",
+ vocab:[["family","gia đình","👨‍👩‍👧‍👦"],["bedroom","phòng ngủ","🛏️"],["kitchen","nhà bếp","🍳"],["bathroom","phòng tắm","🚿"],["living room","phòng khách","🛋️"],["TV","ti vi","📺"]],
+ grammar:{title:"Từ vựng: At home",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a family."},
+ sentence:"I can see a bedroom and a kitchen.",
+ quiz:[{q:"\"family\" nghĩa là gì?",opts:["gia đình","phòng ngủ","nhà bếp"],ans:0},{q:"\"bedroom\" nghĩa là gì?",opts:["phòng ngủ","nhà bếp","phòng tắm"],ans:0},{q:"Từ nào có nghĩa là \"nhà bếp\"?",opts:["kitchen","bathroom","living room"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["bathroom","living room","TV"],ans:0,img:"🚿"},{q:"Chọn câu đúng:",opts:["This is a family.","This a family.","Is this a family"],ans:0},{q:"\"living room\" nghĩa là gì?",opts:["phòng khách","gia đình","phòng ngủ"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["TV","family","bedroom"],ans:0,img:"📺"}]},
+{name:"In the clothes shop",
+ vocab:[["shirt","áo sơ mi","👕"],["trousers","quần dài","👖"],["dress","váy","👗"],["shoes","giày","👟"],["hat","mũ","🧢"],["skirt","chân váy","👚"]],
+ grammar:{title:"Từ vựng: In the clothes shop",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a shirt."},
+ sentence:"I can see a trousers and a dress.",
+ quiz:[{q:"\"shirt\" nghĩa là gì?",opts:["áo sơ mi","quần dài","váy"],ans:0},{q:"\"trousers\" nghĩa là gì?",opts:["quần dài","váy","giày"],ans:0},{q:"Từ nào có nghĩa là \"váy\"?",opts:["dress","shoes","hat"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["shoes","hat","skirt"],ans:0,img:"👟"},{q:"Chọn câu đúng:",opts:["This is a shirt.","This a shirt.","Is this a shirt"],ans:0},{q:"\"hat\" nghĩa là gì?",opts:["mũ","áo sơ mi","quần dài"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["skirt","shirt","trousers"],ans:0,img:"👚"}]},
+{name:"At the campsite",
+ vocab:[["tent","lều","⛺"],["sleeping bag","túi ngủ","🛌"],["campfire","lửa trại","🔥"],["forest","khu rừng","🌲"],["torch","đèn pin","🔦"],["backpack","ba lô","🎒"]],
+ grammar:{title:"Từ vựng: At the campsite",structure:"This is a/an + danh từ.",explain:"Dùng để giới thiệu hoặc gọi tên đồ vật, con vật xung quanh em.",example:"This is a tent."},
+ sentence:"I can see a sleeping bag and a campfire.",
+ quiz:[{q:"\"tent\" nghĩa là gì?",opts:["lều","túi ngủ","lửa trại"],ans:0},{q:"\"sleeping bag\" nghĩa là gì?",opts:["túi ngủ","lửa trại","khu rừng"],ans:0},{q:"Từ nào có nghĩa là \"lửa trại\"?",opts:["campfire","forest","torch"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["forest","torch","backpack"],ans:0,img:"🌲"},{q:"Chọn câu đúng:",opts:["This is a tent.","This a tent.","Is this a tent"],ans:0},{q:"\"torch\" nghĩa là gì?",opts:["đèn pin","lều","túi ngủ"],ans:0},{q:"Nhìn hình sau, đây là từ gì?",opts:["backpack","tent","sleeping bag"],ans:0,img:"🎒"}]}
+],
 3:[
 {name:"Hello",
  vocab:[["hello","xin chào","👋"],["hi","chào","👋"],["goodbye","tạm biệt","👋"],["morning","buổi sáng","🌅"],["name","tên","📛"],["friend","bạn","🧑‍🤝‍🧑"]],
@@ -1206,6 +1372,19 @@ function showRolePanel(role){
  else if(role==="parent"){userInfo.textContent=current.name+" · Bố/Mẹ";parentPanel.classList.remove("hidden");fillGrades("pGrade");renderParentResults();}
  else{userInfo.textContent=current.name+" · Học sinh";studentPanel.classList.remove("hidden");studentGrade.value=current.grade||1;loadLessons();}
 }
+function toggleMyScores(){
+ let box=document.getElementById("myScoresBox");
+ if(!box.classList.contains("hidden")){box.classList.add("hidden");return}
+ box.classList.remove("hidden");renderMyScores();
+}
+function renderMyScores(){
+ let box=document.getElementById("myScoresBox");
+ let mine=results.filter(x=>x.student===current.u).sort((a,b)=>new Date(b.time)-new Date(a.time));
+ if(!mine.length){box.innerHTML="<p>Bạn chưa nộp bài nào.</p>";return}
+ let avg=Math.round(mine.reduce((a,r)=>a+(r.score||0),0)/mine.length);
+ box.innerHTML=`<p>📈 Điểm trung bình các bài đã làm: <b>${avg}%</b> · Tổng số bài đã nộp: <b>${mine.length}</b></p>
+ <table><tr><th>Bài học</th><th>Điểm tổng</th><th>Bài tập</th><th>Phát âm</th><th>Viết</th><th>Trạng thái</th><th>Lần làm</th><th>Thời gian</th></tr>${mine.map(r=>`<tr><td>${r.title||r.lesson}</td><td><b>${r.score}%</b></td><td>${r.quizScore!==undefined&&r.quizScore!==null?r.quizScore+"%":"-"}</td><td>${r.speakScore!==undefined&&r.speakScore!==null?r.speakScore+"%":"-"}</td><td>${r.writeScore!==undefined&&r.writeScore!==null?r.writeScore+"%":"-"}</td><td>${statusLabel(r.status)}</td><td>${r.attempts||1}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")}</table>`;
+}
 function loadLessons(){
  let g=+studentGrade.value;
  let myResults=results.filter(x=>x.student===current.u&&x.grade===g);
@@ -1215,7 +1394,7 @@ function loadLessons(){
  let r=results.find(x=>x.student===current.u&&x.lesson===l.id),status=r?(r.status==="approved"?"✅ Đạt":r.status==="retry"?"🔁 Học lại (bắt buộc)":"⏳ Chờ giáo viên"):"⚪ Chưa học";
  let isRetry=r&&r.status==="retry";
  let attempts=r&&r.attempts?r.attempts:0;
- return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="gray" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>🎓 Nâng cao</button>`:""}</div>`}).join("")
+ return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="gray" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>🎓 Nâng cao</button>`:""}</div>`}).join("")
 }
 function buildWriteItems(L){
  let v=L.vocab,items=[];
@@ -1250,7 +1429,7 @@ function openAdvanced(id){
 }
 function renderExercise(){
  let L=currentLesson;
- let vocabHtml=`<div class="grid">`+L.vocab.map(v=>`<div class="lesson" style="text-align:center"><div style="font-size:36px">${v[2]||"📘"}</div><b>${v[0]}</b><br>${v[1]}<br><button onclick="speak('${v[0]}')">🔊</button></div>`).join("")+`</div>`;
+ let vocabHtml=`<div class="grid">`+L.vocab.map(v=>`<div class="lesson" style="text-align:center"><div style="font-size:36px">${v[2]||"📘"}</div><b>${v[0]}</b><br>${v[1]}<br><button onclick="speak('${jsEsc(v[0])}','us')" title="Nghe – Anh-Mỹ">🔊🇺🇸</button> <button onclick="speak('${jsEsc(v[0])}','gb')" title="Nghe – Anh-Anh">🔊🇬🇧</button></div>`).join("")+`</div>`;
  let speakMsg;
  if(listening)speakMsg="🎙️ Đang nghe... hãy nói ngay bây giờ.";
  else if(speakState.error)speakMsg=`⚠️ ${speakState.error}`;
@@ -1260,15 +1439,17 @@ function renderExercise(){
  let speakSection=`<h3>🎧 Luyện nghe & 🎤 Luyện nói</h3><p>Nghe câu mẫu, sau đó bấm micro và nói lại đúng câu để được chấm điểm phát âm.</p>
  <p style="color:#687386;font-size:14px">⚠️ Lưu ý: tính năng ghi âm chỉ hoạt động khi mở bằng trình duyệt thật (Chrome, Safari...). Nếu bạn đang mở file này trong Zalo, Messenger, Facebook... hãy chọn "Mở bằng trình duyệt" trước.</p>
  <p><i>"${L.sentence}"</i></p>
- <button onclick="speak(currentLesson.sentence)">🔊 Nghe câu mẫu</button>
+ <button onclick="speak(currentLesson.sentence,'us')">🔊 Nghe câu mẫu (Anh-Mỹ)</button>
+ <button onclick="speak(currentLesson.sentence,'gb')">🔊 Nghe câu mẫu (Anh-Anh)</button>
  <button onclick="recordSpeech()" ${listening?"disabled":""}>🎙️ ${listening?"Đang nghe...":"Nói lại câu này"}</button>
+ <p style="color:#687386;font-size:13px">Mẹo: nghe cả 2 giọng để làm quen — Anh-Mỹ (Mỹ) hay dùng âm "r" rõ, Anh-Anh (Anh) hay lược âm "r" cuối từ.</p>
  <p id="speakScoreOut">${speakMsg}</p>${speakState.heard?`<p style="color:#687386">Bạn đã nói: "${speakState.heard}"</p>`:""}`;
  let writeHtml=writeItems.map((item,idx)=>{
   let st=writeStates[idx];
   let msg=!st.attempted?"":(item.freeform?"✅ Đã ghi lại, giáo viên sẽ chấm câu này.":(st.passed?`✅ Đạt! Điểm: <b>${st.score}%</b>`:`❌ Chưa đúng. Điểm: <b>${st.score}%</b> — Đáp án đúng: "${item.answer}"`));
   return `<div class="lesson">${item.icon?`<div style="font-size:28px">${item.icon}</div>`:""}<p>${item.label}</p>
   ${item.isSentence?`<textarea id="writeInput${idx}" rows="2">${st.text}</textarea>`:`<input id="writeInput${idx}" value="${st.text}">`}
-  ${item.answer&&!item.isSentence?`<button onclick="speak('${item.answer}')">🔊 Nghe gợi ý</button>`:""}${item.isSentence&&!item.freeform?`<button onclick="speak(currentLesson.sentence)">🔊 Nghe lại</button>`:""}
+  ${item.answer&&!item.isSentence?`<button onclick="speak('${jsEsc(item.answer)}','us')">🔊🇺🇸</button> <button onclick="speak('${jsEsc(item.answer)}','gb')">🔊🇬🇧</button>`:""}${item.isSentence&&!item.freeform?`<button onclick="speak(currentLesson.sentence,'us')">🔊🇺🇸 Nghe lại</button> <button onclick="speak(currentLesson.sentence,'gb')">🔊🇬🇧 Nghe lại</button>`:""}
   <button onclick="checkWriting(${idx})">Kiểm tra</button>
   <p>${msg}</p></div>`;
  }).join("");
@@ -1303,7 +1484,7 @@ function renderAdvancedContent(){
    }).join("")}
    ${checked?`<p style="color:${passAnswers[qi]===q.ans?'#15803d':'#b91c1c'}">${passAnswers[qi]===q.ans?"✅ Chính xác!":"❌ Chưa đúng, đáp án đúng đã được đánh dấu."}</p>`:""}</div>`;
   }).join("");
-  passageHtml=`<h4>🎧 Nghe đoạn văn & trả lời câu hỏi</h4><p><i>"${L.advanced.passage}"</i></p><button onclick="speak(currentLesson.advanced.passage)">🔊 Nghe đoạn văn</button>${pqHtml}`;
+  passageHtml=`<h4>🎧 Nghe đoạn văn & trả lời câu hỏi</h4><p><i>"${L.advanced.passage}"</i></p><button onclick="speak(currentLesson.advanced.passage,'us')">🔊🇺🇸 Anh-Mỹ</button> <button onclick="speak(currentLesson.advanced.passage,'gb')">🔊🇬🇧 Anh-Anh</button>${pqHtml}`;
  }
  return `<h3>💬 Hội thoại mở rộng</h3>${dialogueHtml}<h4>Câu hỏi về hội thoại</h4>${qHtml}${passageHtml}`;
 }
@@ -1322,7 +1503,7 @@ function renderQuiz(){
  let L=currentLesson;
  let qHtml=L.quiz.map((q,qi)=>`<div class="lesson"><p><b>Câu ${qi+1}:</b> ${q.q}</p>${q.img?`<div style="font-size:44px;text-align:center">${q.img}</div>`:""}${q.vid?videoEmbed(q.vid,"minh họa câu "+(qi+1)):""}${q.opts.map((o,oi)=>`<button class="option${quizState[qi]===oi?' picked':''}" onclick="selectQuiz(${qi},${oi})">${o}</button>`).join("")}</div>`).join("");
  let allAnswered=quizState.every(x=>x!==null);
- return `<h3>✍️ Bài tập (${L.quiz.length} câu)</h3>${qHtml}<button ${allAnswered?"":"disabled"} onclick="submitLesson()">Nộp bài</button><p id="quizOut"></p>`;
+ return `<h3>✍️ Bài tập (${L.quiz.length} câu)</h3>${qHtml}<button ${allAnswered?"":"disabled"} onclick="submitLesson()">Nộp bài</button><div id="quizOut"></div>`;
 }
 function selectQuiz(qi,oi){quizState[qi]=oi;renderExercise()}
 function ytId(url){
@@ -1336,7 +1517,24 @@ function videoEmbed(url,title){
  return `<p><a href="${url}" target="_blank" rel="noopener">▶️ Xem video</a></p>`;
 }
 function ytSearchUrl(q){return "https://www.youtube.com/results?search_query="+encodeURIComponent(q)}
-function speak(t){if(window.speechSynthesis){let u=new SpeechSynthesisUtterance(t);u.lang="en-US";speechSynthesis.speak(u)}}
+function jsEsc(s){return (s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
+function pickVoice(lang){
+ if(!window.speechSynthesis)return null;
+ let voices=speechSynthesis.getVoices()||[];
+ let exact=voices.filter(v=>v.lang&&v.lang.toLowerCase()===lang);
+ if(!exact.length)return null;
+ return exact.find(v=>/Google/i.test(v.name))||exact.find(v=>/Natural|Online/i.test(v.name))||exact[0];
+}
+function speak(t,accent){
+ if(!window.speechSynthesis)return;
+ let lang=accent==="gb"?"en-GB":"en-US";
+ let u=new SpeechSynthesisUtterance(t);
+ u.lang=lang;u.rate=0.92;u.pitch=1;
+ let v=pickVoice(lang.toLowerCase());
+ if(v)u.voice=v;
+ speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+if(window.speechSynthesis){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{};}catch(e){}}
 function normalizeText(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim()}
 function levenshtein(a,b){
  let m=a.length,n=b.length,dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
@@ -1389,9 +1587,19 @@ function submitLesson(){
  let item={student:current.u,studentName:current.name,grade:current.grade,lesson:L.id,title:L.title,score:finalScore,quizScore,speakScore:speakState.attempted?speakState.score:null,writeScore,status:autoStatus,attempts,time:new Date().toISOString()};
  if(old)Object.assign(old,item);else results.push(item);save();
  onlineSaveResult(item).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
- let statusMsg=autoStatus==="retry"?`⚠️ Điểm chưa đạt yêu cầu (cần từ ${PASS_THRESHOLD}%). Bạn cần học lại bài này.`:"Bài đã gửi giáo viên đánh giá.";
- quizOut.textContent=`Đã nộp bài! Bài tập: ${quizScore}%${speakState.attempted?` · Phát âm: ${speakState.score}%`:""}${writeScore!==null?` · Viết: ${writeScore}%`:""} · Điểm tổng: ${finalScore}%. ${statusMsg}`;
- setTimeout(closeLesson,1400);
+ let statusMsg=autoStatus==="retry"?`⚠️ Điểm chưa đạt yêu cầu (cần từ ${PASS_THRESHOLD}%). Bạn cần học lại bài này.`:"🎉 Bài đã gửi giáo viên đánh giá.";
+ let color=finalScore>=90?"#1e8e3e":finalScore>=PASS_THRESHOLD?"#1a73e8":"#d94b4b";
+ quizOut.innerHTML=`<div class="lesson" style="text-align:center;border-color:${color};border-width:2px">
+ <p style="font-size:15px;margin:0">Điểm tổng kết bài học</p>
+ <p style="font-size:44px;font-weight:bold;margin:4px 0;color:${color}">${finalScore}%</p>
+ <p style="color:#687386;margin:0 0 8px 0">
+  📝 Bài tập: <b>${quizScore}%</b>
+  ${speakState.attempted?` · 🎤 Phát âm: <b>${speakState.score}%</b>`:""}
+  ${writeScore!==null?` · ✍️ Viết: <b>${writeScore}%</b>`:""}
+ </p>
+ <p>${statusMsg}</p>
+ <button onclick="closeLesson()">✅ Đóng và quay lại danh sách bài học</button>
+ </div>`;
 }
 function closeLesson(){lessonPanel.classList.add("hidden");studentPanel.classList.remove("hidden");loadLessons()}
 async function createStudentFromPanel(u,p,n,g,msgEl,createdBy){
