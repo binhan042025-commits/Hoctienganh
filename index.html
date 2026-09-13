@@ -589,30 +589,30 @@ function buildFlashDeck(L){
 }
 function toggleFlashMode(){
  flashActive=!flashActive;flashIndex=0;flashFlipped=false;flashKnown=new Set();
- exercise.innerHTML=renderExercise();
+ renderExercise();
 }
-function flipFlashcard(){flashFlipped=!flashFlipped;exercise.innerHTML=renderExercise();}
+function flipFlashcard(){flashFlipped=!flashFlipped;renderExercise();}
 function nextFlashcard(){
  let deck=buildFlashDeck(currentLesson);
  flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
- exercise.innerHTML=renderExercise();
+ renderExercise();
 }
 function prevFlashcard(){
  flashIndex=Math.max(flashIndex-1,0);flashFlipped=false;
- exercise.innerHTML=renderExercise();
+ renderExercise();
 }
 function markFlashKnown(){
  let deck=buildFlashDeck(currentLesson);
  if(flashKnown.has(flashIndex))flashKnown.delete(flashIndex);else flashKnown.add(flashIndex);
  flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
- exercise.innerHTML=renderExercise();
+ renderExercise();
 }
 function shuffleFlashDeck(){
  let deck=buildFlashDeck(currentLesson);
  flashOrder=deck.map((_,i)=>i);
  for(let i=flashOrder.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[flashOrder[i],flashOrder[j]]=[flashOrder[j],flashOrder[i]];}
  flashIndex=0;flashFlipped=false;
- exercise.innerHTML=renderExercise();
+ renderExercise();
 }
 function renderFlashcardView(){
  let L=currentLesson;
