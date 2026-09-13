@@ -319,7 +319,7 @@ let results=[], current=null, currentLesson=null;
 let speakState={attempted:false,passed:false,score:0}, quizState=[], listening=false;
 let writeItems=[], writeStates=[];
 let advOpen=false, advAnswers=[], passAnswers=[], viewMode="full", advRetrying=false;
-let flashActive=false, flashIndex=0, flashFlipped=false, flashKnown=new Set();
+let flashActive=false, flashIndex=0, flashResults={}, flashSelected={}, flashOptCache={}, flashRetrying=false;
 const save=()=>{};
 function fillGrades(id){document.getElementById(id).innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">Lớp ${i+1}</option>`).join("")}
 fillGrades("tGrade");fillGrades("studentGrade");
@@ -366,7 +366,8 @@ function loadLessons(){
  let isRetry=r&&r.status==="retry";
  let attempts=r&&r.attempts?r.attempts:0;
  let ar=results.find(x=>x.student===current.u&&x.lesson===l.id+"-adv");
- return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}</div>`}).join("")
+ let fr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-flash");
+ return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}${fr?`<span class="badge">🗂️ Flashcard: ${fr.score}%</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}</div>`}).join("")
 }
 function buildWriteItems(L){
  let v=L.vocab,items=[];
@@ -378,7 +379,7 @@ function buildWriteItems(L){
 function openLesson(id){
  currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
  viewMode="full";
- flashActive=false;flashIndex=0;flashFlipped=false;flashKnown=new Set();
+ flashActive=false;flashIndex=0;flashResults={};flashSelected={};flashOptCache={};flashRetrying=false;
  speakState={attempted:false,passed:false,score:0};
  writeItems=buildWriteItems(currentLesson);
  writeStates=writeItems.map(()=>({attempted:false,passed:false,score:0,text:""}));
@@ -587,57 +588,107 @@ function buildFlashDeck(L){
  (L.phrases||[]).forEach(p=>deck.push({en:p[0],vi:p[1],emoji:"🧩",ex:null,type:"Cụm từ"}));
  return deck;
 }
+function shuffleArr(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a}
+function flashOptionsFor(deck,idx){
+ if(flashOptCache[idx])return flashOptCache[idx];
+ let correct=deck[idx].vi;
+ let pool=shuffleArr(deck.filter((c,i)=>i!==idx&&c.vi!==correct).map(c=>c.vi));
+ let distractors=pool.slice(0,2);
+ while(distractors.length<2)distractors.push("(không có nghĩa này)");
+ let opts=shuffleArr([correct,...distractors]);
+ flashOptCache[idx]=opts;
+ return opts;
+}
 function toggleFlashMode(){
- flashActive=!flashActive;flashIndex=0;flashFlipped=false;flashKnown=new Set();
+ flashActive=!flashActive;flashIndex=0;flashResults={};flashSelected={};flashOptCache={};flashRetrying=false;
  renderExercise();
 }
-function flipFlashcard(){flashFlipped=!flashFlipped;renderExercise();}
+function selectFlashOption(text){
+ if(flashResults[flashIndex]!==undefined)return;
+ let deck=buildFlashDeck(currentLesson);
+ let correct=deck[flashIndex].vi;
+ flashResults[flashIndex]=(text===correct);
+ flashSelected[flashIndex]=text;
+ renderExercise();
+}
 function nextFlashcard(){
  let deck=buildFlashDeck(currentLesson);
- flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
+ if(flashResults[flashIndex]===undefined)return;
+ flashIndex=Math.min(flashIndex+1,deck.length-1);
  renderExercise();
 }
 function prevFlashcard(){
- flashIndex=Math.max(flashIndex-1,0);flashFlipped=false;
- renderExercise();
-}
-function markFlashKnown(){
- let deck=buildFlashDeck(currentLesson);
- if(flashKnown.has(flashIndex))flashKnown.delete(flashIndex);else flashKnown.add(flashIndex);
- flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
- renderExercise();
-}
-function shuffleFlashDeck(){
- let deck=buildFlashDeck(currentLesson);
- flashOrder=deck.map((_,i)=>i);
- for(let i=flashOrder.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[flashOrder[i],flashOrder[j]]=[flashOrder[j],flashOrder[i]];}
- flashIndex=0;flashFlipped=false;
+ flashIndex=Math.max(flashIndex-1,0);
  renderExercise();
 }
 function renderFlashcardView(){
  let L=currentLesson;
  let deck=buildFlashDeck(L);
  if(!deck.length)return "<p>Bài này chưa có từ vựng để học bằng flashcard.</p>";
+ let existingFlash=results.find(x=>x.student===current.u&&x.lesson===L.id+"-flash");
+ if(existingFlash&&!flashRetrying){
+  return `<div class="lesson" style="text-align:center">
+  <p>📇 Bạn đã hoàn thành bộ flashcard này.</p>
+  <p style="font-size:36px;font-weight:bold;color:${existingFlash.score>=PASS_THRESHOLD?'#1e8e3e':'#d94b4b'}">${existingFlash.score}%</p>
+  <p style="color:#687386">Trả lời đúng ${Math.round(existingFlash.score*deck.length/100)}/${deck.length} thẻ · Đã gửi cho giáo viên/bố mẹ theo dõi.</p>
+  <button onclick="retryFlashcards()">🔁 Học lại bộ flashcard</button>
+  </div>`;
+ }
  if(flashIndex>=deck.length)flashIndex=deck.length-1;
  if(flashIndex<0)flashIndex=0;
  let card=deck[flashIndex];
- let known=flashKnown.has(flashIndex);
- let front=`<div style="font-size:56px">${card.emoji}</div><h2 style="margin:8px 0">${card.en}</h2><p style="color:#687386;font-size:13px">${card.type}</p>`;
- let back=`<div style="font-size:40px">${card.emoji}</div><h2 style="margin:8px 0;color:#315efb">${card.vi}</h2>${card.ex?`<p><i>"${card.ex}"</i></p>`:""}`;
- return `<div class="lesson" style="text-align:center;min-height:160px;cursor:pointer" onclick="flipFlashcard()">
- ${flashFlipped?back:front}
- <p style="font-size:12px;color:#687386">${flashFlipped?"👆 Bấm để xem lại mặt trước":"👆 Bấm vào thẻ để xem nghĩa"}</p>
+ let answered=flashResults[flashIndex]!==undefined;
+ let picked=flashSelected[flashIndex];
+ let opts=flashOptionsFor(deck,flashIndex);
+ let judgedCount=Object.keys(flashResults).length;
+ let correctCount=Object.values(flashResults).filter(v=>v===true).length;
+ let optsHtml=opts.map(o=>{
+  let cls="option";
+  if(answered){
+   if(o===card.vi)cls+=" picked";
+   else if(o===picked)cls+=" bad";
+  }
+  return `<button class="${cls}" ${answered?"disabled":""} onclick="selectFlashOption('${jsEsc(o)}')">${o}</button>`;
+ }).join("");
+ let feedback="";
+ if(answered){
+  feedback=`<p style="color:${flashResults[flashIndex]?'#15803d':'#b91c1c'}">${flashResults[flashIndex]?"✅ Chính xác!":"❌ Chưa đúng — nghĩa đúng là: "+card.vi}</p>${card.ex?`<p><i>"${card.ex}"</i></p>`:""}`;
+ }
+ let navHtml;
+ if(flashIndex===deck.length-1&&answered){
+  navHtml=`<div style="text-align:center"><button onclick="prevFlashcard()">◀ Trước</button> <button onclick="submitFlashcards()">📤 Nộp kết quả Flashcard</button></div>`;
+ }else{
+  navHtml=`<div style="text-align:center"><button onclick="prevFlashcard()" ${flashIndex===0?"disabled":""}>◀ Trước</button> <button onclick="nextFlashcard()" ${answered?"":"disabled title='Hãy chọn đáp án trước khi qua thẻ tiếp theo'"}>Tiếp ▶</button></div>`;
+ }
+ return `<div class="lesson" style="text-align:center;min-height:120px">
+ <div style="font-size:56px">${card.emoji}</div><h2 style="margin:8px 0">${card.en}</h2><p style="color:#687386;font-size:13px">${card.type}</p>
+ <button onclick="speak('` + "${jsEsc(card.en)}" + `','us')">🔊🇺🇸</button>
+ <button onclick="speak('` + "${jsEsc(card.en)}" + `','gb')">🔊🇬🇧</button>
  </div>
- <div style="text-align:center;margin:6px 0">
- <button onclick="event.stopPropagation();speak('` + "${jsEsc(card.en)}" + `','us')">🔊🇺🇸</button>
- <button onclick="event.stopPropagation();speak('` + "${jsEsc(card.en)}" + `','gb')">🔊🇬🇧</button>
- </div>
- <p style="text-align:center;color:#687386;font-size:13px">Thẻ ${flashIndex+1}/${deck.length} · Đã thuộc: ${flashKnown.size}/${deck.length}</p>
- <div style="text-align:center">
- <button onclick="prevFlashcard()" ${flashIndex===0?"disabled":""}>◀ Trước</button>
- <button onclick="markFlashKnown()">${known?"↩️ Bỏ đánh dấu":"✅ Đã thuộc"}</button>
- <button onclick="nextFlashcard()" ${flashIndex===deck.length-1?"disabled":""}>Tiếp ▶</button>
- </div>`;
+ <p style="text-align:center;color:#687386;font-size:13px">Từ này nghĩa là gì?</p>
+ <div style="text-align:center">${optsHtml}</div>
+ <div style="text-align:center">${feedback}</div>
+ <p style="text-align:center;color:#687386;font-size:13px">Thẻ ${flashIndex+1}/${deck.length} · Đã trả lời: ${judgedCount}/${deck.length} · Đúng: ${correctCount}</p>
+ ${navHtml}`;
+}
+function retryFlashcards(){
+ flashRetrying=true;flashIndex=0;flashResults={};flashSelected={};flashOptCache={};
+ renderExercise();
+}
+function submitFlashcards(){
+ let L=currentLesson;
+ flashRetrying=false;
+ let deck=buildFlashDeck(L);
+ let correctCount=Object.values(flashResults).filter(v=>v===true).length;
+ let score=Math.round(correctCount/deck.length*100);
+ let autoStatus=score>=PASS_THRESHOLD?"pending":"retry";
+ let flashId=L.id+"-flash";
+ let old=results.find(x=>x.student===current.u&&x.lesson===flashId);
+ let attempts=old&&old.attempts?old.attempts+1:1;
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:flashId,title:L.title+" (Flashcard)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString()};
+ if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
+ onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
+ renderExercise();
 }
 
 function normalizeText(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim()}
