@@ -319,6 +319,7 @@ let results=[], current=null, currentLesson=null;
 let speakState={attempted:false,passed:false,score:0}, quizState=[], listening=false;
 let writeItems=[], writeStates=[];
 let advOpen=false, advAnswers=[], passAnswers=[], viewMode="full", advRetrying=false;
+let flashActive=false, flashIndex=0, flashFlipped=false, flashKnown=new Set();
 const save=()=>{};
 function fillGrades(id){document.getElementById(id).innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">Lớp ${i+1}</option>`).join("")}
 fillGrades("tGrade");fillGrades("studentGrade");
@@ -377,6 +378,7 @@ function buildWriteItems(L){
 function openLesson(id){
  currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
  viewMode="full";
+ flashActive=false;flashIndex=0;flashFlipped=false;flashKnown=new Set();
  speakState={attempted:false,passed:false,score:0};
  writeItems=buildWriteItems(currentLesson);
  writeStates=writeItems.map(()=>({attempted:false,passed:false,score:0,text:""}));
@@ -411,6 +413,8 @@ function renderExercise(){
  let vocabHtml=`<div class="grid">`+L.vocab.map(v=>`<div class="lesson" style="text-align:center"><div style="font-size:36px">${v[2]||"📘"}</div><b>${v[0]}</b><br>${v[1]}${v[3]?`<br><i style="font-size:12px;color:#687386">"${v[3]}"</i>`:""}<br><button onclick="speak('${jsEsc(v[0])}','us')" title="Nghe – Anh-Mỹ">🔊🇺🇸</button> <button onclick="speak('${jsEsc(v[0])}','gb')" title="Nghe – Anh-Anh">🔊🇬🇧</button></div>`).join("")+`</div>`;
  let extraHtml=L.extra?`<h3>📚 Từ vựng mở rộng <span style="font-weight:normal;font-size:13px;color:#687386">(bổ sung thêm, không có trong SGK)</span></h3><div class="grid">`+L.extra.map(v=>`<div class="lesson" style="text-align:center"><div style="font-size:36px">${v[2]||"📘"}</div><b>${v[0]}</b><br>${v[1]}<br><button onclick="speak('${jsEsc(v[0])}','us')" title="Nghe – Anh-Mỹ">🔊🇺🇸</button> <button onclick="speak('${jsEsc(v[0])}','gb')" title="Nghe – Anh-Anh">🔊🇬🇧</button></div>`).join("")+`</div>`:"";
  let phrasesHtml=L.phrases?`<h3>🧩 Cụm từ <span style="font-weight:normal;font-size:13px;color:#687386">(bổ sung thêm)</span></h3><div class="grid">`+L.phrases.map(p=>`<div class="lesson" style="text-align:center"><b>${p[0]}</b><br>${p[1]}<br><button onclick="speak('${jsEsc(p[0])}','us')" title="Nghe – Anh-Mỹ">🔊🇺🇸</button> <button onclick="speak('${jsEsc(p[0])}','gb')" title="Nghe – Anh-Anh">🔊🇬🇧</button></div>`).join("")+`</div>`:"";
+ let flashToggleBtn=`<button class="gray" onclick="toggleFlashMode()">${flashActive?"📋 Xem dạng danh sách":"🗂️ Học bằng Flashcard"}</button>`;
+ let vocabSection=flashActive?(flashToggleBtn+renderFlashcardView()):(flashToggleBtn+letterNote+`<h3>📖 Từ vựng chính ${L.letter?"(theo SGK)":"(có hình minh họa)"}</h3>${vocabHtml}`+extraHtml+phrasesHtml);
  let speakMsg;
  if(listening)speakMsg="🎙️ Đang nghe... hãy nói ngay bây giờ.";
  else if(speakState.error)speakMsg=`⚠️ ${speakState.error}`;
@@ -439,7 +443,7 @@ function renderExercise(){
  let videoSection=L.video?`<h3>🎬 Video bài giảng</h3>${videoEmbed(L.video,L.title)}`
   :`<h3>🎬 Video bài giảng</h3><p style="color:#687386">Bài này chưa gắn sẵn video. Bấm nút bên dưới để tìm video bài giảng phù hợp trên YouTube:</p><button class="gray" onclick="window.open('${ytSearchUrl(L.title.replace(/^(Unit \d+: |Bài \d+: )/,"")+" Global Success lớp "+lessonGrade)}','_blank')">🔎 Tìm video cho bài này</button>`;
  let grammarSection=`<h3>📘 Ngữ pháp: ${L.grammar.title}</h3><p><b>Cấu trúc:</b> ${L.grammar.structure}</p><p>${L.grammar.explain}</p><p><i>Ví dụ: ${L.grammar.example}</i></p>`;
- exercise.innerHTML=videoSection+letterNote+`<h3>📖 Từ vựng chính ${L.letter?'(theo SGK)':'(có hình minh họa)'}</h3>${vocabHtml}`+extraHtml+phrasesHtml+speakSection+writeSection+grammarSection+renderQuiz();
+ exercise.innerHTML=videoSection+vocabSection+speakSection+writeSection+grammarSection+renderQuiz();
 }
 function renderAdvancedContent(){
  let L=currentLesson;
@@ -576,6 +580,66 @@ function speak(t,accent){
  speechSynthesis.cancel();speechSynthesis.speak(u);
 }
 if(window.speechSynthesis){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{};}catch(e){}}
+function buildFlashDeck(L){
+ let deck=[];
+ (L.vocab||[]).forEach(v=>deck.push({en:v[0],vi:v[1],emoji:v[2]||"📘",ex:v[3]||null,type:"Từ chính"}));
+ (L.extra||[]).forEach(v=>deck.push({en:v[0],vi:v[1],emoji:v[2]||"📘",ex:null,type:"Mở rộng"}));
+ (L.phrases||[]).forEach(p=>deck.push({en:p[0],vi:p[1],emoji:"🧩",ex:null,type:"Cụm từ"}));
+ return deck;
+}
+function toggleFlashMode(){
+ flashActive=!flashActive;flashIndex=0;flashFlipped=false;flashKnown=new Set();
+ exercise.innerHTML=renderExercise();
+}
+function flipFlashcard(){flashFlipped=!flashFlipped;exercise.innerHTML=renderExercise();}
+function nextFlashcard(){
+ let deck=buildFlashDeck(currentLesson);
+ flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
+ exercise.innerHTML=renderExercise();
+}
+function prevFlashcard(){
+ flashIndex=Math.max(flashIndex-1,0);flashFlipped=false;
+ exercise.innerHTML=renderExercise();
+}
+function markFlashKnown(){
+ let deck=buildFlashDeck(currentLesson);
+ if(flashKnown.has(flashIndex))flashKnown.delete(flashIndex);else flashKnown.add(flashIndex);
+ flashIndex=Math.min(flashIndex+1,deck.length-1);flashFlipped=false;
+ exercise.innerHTML=renderExercise();
+}
+function shuffleFlashDeck(){
+ let deck=buildFlashDeck(currentLesson);
+ flashOrder=deck.map((_,i)=>i);
+ for(let i=flashOrder.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[flashOrder[i],flashOrder[j]]=[flashOrder[j],flashOrder[i]];}
+ flashIndex=0;flashFlipped=false;
+ exercise.innerHTML=renderExercise();
+}
+function renderFlashcardView(){
+ let L=currentLesson;
+ let deck=buildFlashDeck(L);
+ if(!deck.length)return "<p>Bài này chưa có từ vựng để học bằng flashcard.</p>";
+ if(flashIndex>=deck.length)flashIndex=deck.length-1;
+ if(flashIndex<0)flashIndex=0;
+ let card=deck[flashIndex];
+ let known=flashKnown.has(flashIndex);
+ let front=`<div style="font-size:56px">${card.emoji}</div><h2 style="margin:8px 0">${card.en}</h2><p style="color:#687386;font-size:13px">${card.type}</p>`;
+ let back=`<div style="font-size:40px">${card.emoji}</div><h2 style="margin:8px 0;color:#315efb">${card.vi}</h2>${card.ex?`<p><i>"${card.ex}"</i></p>`:""}`;
+ return `<div class="lesson" style="text-align:center;min-height:160px;cursor:pointer" onclick="flipFlashcard()">
+ ${flashFlipped?back:front}
+ <p style="font-size:12px;color:#687386">${flashFlipped?"👆 Bấm để xem lại mặt trước":"👆 Bấm vào thẻ để xem nghĩa"}</p>
+ </div>
+ <div style="text-align:center;margin:6px 0">
+ <button onclick="event.stopPropagation();speak('` + "${jsEsc(card.en)}" + `','us')">🔊🇺🇸</button>
+ <button onclick="event.stopPropagation();speak('` + "${jsEsc(card.en)}" + `','gb')">🔊🇬🇧</button>
+ </div>
+ <p style="text-align:center;color:#687386;font-size:13px">Thẻ ${flashIndex+1}/${deck.length} · Đã thuộc: ${flashKnown.size}/${deck.length}</p>
+ <div style="text-align:center">
+ <button onclick="prevFlashcard()" ${flashIndex===0?"disabled":""}>◀ Trước</button>
+ <button onclick="markFlashKnown()">${known?"↩️ Bỏ đánh dấu":"✅ Đã thuộc"}</button>
+ <button onclick="nextFlashcard()" ${flashIndex===deck.length-1?"disabled":""}>Tiếp ▶</button>
+ </div>`;
+}
+
 function normalizeText(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim()}
 function levenshtein(a,b){
  let m=a.length,n=b.length,dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
