@@ -662,8 +662,8 @@ function renderFlashcardView(){
  }
  return `<div class="lesson" style="text-align:center;min-height:120px">
  <div style="font-size:56px">${card.emoji}</div><h2 style="margin:8px 0">${card.en}</h2><p style="color:#687386;font-size:13px">${card.type}</p>
- <button onclick="speak('` + "${jsEsc(card.en)}" + `','us')">🔊🇺🇸</button>
- <button onclick="speak('` + "${jsEsc(card.en)}" + `','gb')">🔊🇬🇧</button>
+ <button onclick="speak('${jsEsc(card.en)}','us')">🔊🇺🇸</button>
+ <button onclick="speak('${jsEsc(card.en)}','gb')">🔊🇬🇧</button>
  </div>
  <p style="text-align:center;color:#687386;font-size:13px">Từ này nghĩa là gì?</p>
  <div style="text-align:center">${optsHtml}</div>
