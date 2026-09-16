@@ -71,6 +71,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div id="lessonPanel" class="card hidden">
 <button class="gray" onclick="closeLesson()">← Danh sách bài</button>
 <h2 id="lessonTitle"></h2><p id="lessonDesc"></p>
+<div id="videoHolder"></div>
 <div id="exercise"></div>
 </div>
 </section>
@@ -302,10 +303,10 @@ async function onlineLoad(){
   save();
 }
 function toDbResult(item){
- return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null};
+ return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null,videometa:item.videoMeta?JSON.stringify(item.videoMeta):null};
 }
 function fromDbResult(row){
- return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null};
+ return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null,videoMeta:row.videometa?JSON.parse(row.videometa):null};
 }
 async function onlineSaveResult(item){
  return sbFetch('/rest/v1/results?on_conflict=student%2Clesson',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(toDbResult(item))});
@@ -320,6 +321,9 @@ let speakState={attempted:false,passed:false,score:0}, quizState=[], listening=f
 let writeItems=[], writeStates=[], writeRetrying=false;
 let advOpen=false, advAnswers=[], passAnswers=[], viewMode="full", advRetrying=false;
 let flashActive=false, flashIndex=0, flashResults={}, flashSelected={}, flashOptCache={}, flashRetrying=false;
+let ytApiReady=false, ytPlayer=null, ytMaxWatched=0, ytDuration=0, ytSessionSeconds=0, ytCheckTimer=null, ytVideoLessonId=null, ytBaseMinutes=0;
+window.onYouTubeIframeAPIReady=function(){ytApiReady=true; if(window.__ytPendingInit){let f=window.__ytPendingInit;window.__ytPendingInit=null;f();}};
+(function(){let s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";document.head.appendChild(s);})();
 const save=()=>{};
 function fillGrades(id){document.getElementById(id).innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">Lớp ${i+1}</option>`).join("")}
 fillGrades("tGrade");fillGrades("studentGrade");
@@ -368,7 +372,8 @@ function loadLessons(){
  let ar=results.find(x=>x.student===current.u&&x.lesson===l.id+"-adv");
  let fr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-flash");
  let wr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-write");
- return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}${fr?`<span class="badge">🗂️ Flashcard: ${fr.score}%</span>`:""}${wr?`<span class="badge">✍️ Luyện viết: ${wr.score}%${wr.status==="retry"?" (chưa đạt)":""}</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}</div>`}).join("")
+ let vr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-video");
+ return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}${fr?`<span class="badge">🗂️ Flashcard: ${fr.score}%</span>`:""}${wr?`<span class="badge">✍️ Luyện viết: ${wr.score}%${wr.status==="retry"?" (chưa đạt)":""}</span>`:""}${vr&&vr.videoMeta?`<span class="badge">🎬 Video: đã xem ${vr.videoMeta.totalMinutes} phút (${vr.score}%)</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}</div>`}).join("")
 }
 function buildWriteItems(L){
  let v=L.vocab,items=[];
@@ -396,6 +401,7 @@ function openLesson(id){
  passAnswers=currentLesson.advanced&&currentLesson.advanced.passageQuiz?currentLesson.advanced.passageQuiz.map(()=>null):[];
  studentPanel.classList.add("hidden");lessonPanel.classList.remove("hidden");
  lessonTitle.textContent=currentLesson.title;lessonDesc.textContent=currentLesson.desc;
+ showLessonVideo(currentLesson);
  renderExercise();
 }
 function openAdvanced(id){
@@ -413,6 +419,7 @@ function openAdvanced(id){
  studentPanel.classList.add("hidden");lessonPanel.classList.remove("hidden");
  lessonTitle.textContent="🎓 "+currentLesson.title+" — Nâng cao";
  lessonDesc.textContent="Nội dung mở rộng thêm cho bài này: hội thoại, đoạn văn nghe-hiểu. Đây là phần BỔ SUNG, không thay thế bài học chính theo SGK.";
+ stopYouTubeTracking();videoHolder.innerHTML="";
  exercise.innerHTML=renderAdvancedContent();
 }
 function renderExercise(){
@@ -462,10 +469,8 @@ function renderExercise(){
  }
  let writeSection=`<h3>✍️ Luyện viết</h3><p>Hoàn thành các bài viết sau (viết từ, chép chính tả, và tự đặt câu).</p>${writeHtml}${writeFooter}`;
  let lessonGrade=L.id.split("-")[0];
- let videoSection=L.video?`<h3>🎬 Video bài giảng</h3>${videoEmbed(L.video,L.title)}`
-  :`<h3>🎬 Video bài giảng</h3><p style="color:#687386">Bài này chưa gắn sẵn video. Bấm nút bên dưới để tìm video bài giảng phù hợp trên YouTube:</p><button class="gray" onclick="window.open('${ytSearchUrl(L.title.replace(/^(Unit \d+: |Bài \d+: )/,"")+" Global Success lớp "+lessonGrade)}','_blank')">🔎 Tìm video cho bài này</button>`;
  let grammarSection=`<h3>📘 Ngữ pháp: ${L.grammar.title}</h3><p><b>Cấu trúc:</b> ${L.grammar.structure}</p><p>${L.grammar.explain}</p><p><i>Ví dụ: ${L.grammar.example}</i></p>`;
- exercise.innerHTML=videoSection+vocabSection+speakSection+writeSection+grammarSection+renderQuiz();
+ exercise.innerHTML=vocabSection+speakSection+writeSection+grammarSection+renderQuiz();
 }
 function renderAdvancedContent(){
  let L=currentLesson;
@@ -604,6 +609,91 @@ function videoEmbed(url,title){
  return `<p><a href="${url}" target="_blank" rel="noopener">▶️ Xem video</a></p>`;
 }
 function ytSearchUrl(q){return "https://www.youtube.com/results?search_query="+encodeURIComponent(q)}
+function showLessonVideo(L){
+ stopYouTubeTracking();
+ let holder=document.getElementById("videoHolder");
+ if(!holder)return;
+ let lessonGrade=L.id.split("-")[0];
+ if(!L.video){
+  holder.innerHTML=`<h3>🎬 Video bài giảng</h3><p style="color:#687386">Bài này chưa gắn sẵn video. Bấm nút bên dưới để tìm video bài giảng phù hợp trên YouTube:</p><button class="gray" onclick="window.open('${ytSearchUrl(L.title.replace(/^(Unit \d+: |Bài \d+: )/,"")+" Global Success lớp "+lessonGrade)}','_blank')">🔎 Tìm video cho bài này</button>`;
+  return;
+ }
+ let id=ytId(L.video);
+ if(!id){holder.innerHTML=`<h3>🎬 Video bài giảng</h3><p><a href="${L.video}" target="_blank" rel="noopener">▶️ Xem video</a></p>`;return}
+ holder.innerHTML=`<h3>🎬 Video bài giảng</h3><p style="font-size:12px;color:#687386">🔒 Không tua nhanh được — video sẽ tự quay lại vị trí đã xem nếu bạn kéo thanh trượt về phía trước.</p><div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;margin:8px 0"><div id="ytHolder" style="position:absolute;top:0;left:0;width:100%;height:100%"></div></div><p id="ytProgressNote" style="font-size:12px;color:#687386"></p>`;
+ ytVideoLessonId=L.id;
+ let existing=results.find(x=>x.student===current.u&&x.lesson===L.id+"-video");
+ let meta=existing&&existing.videoMeta?existing.videoMeta:null;
+ ytMaxWatched=meta&&meta.maxWatchedSeconds?meta.maxWatchedSeconds:0;
+ ytBaseMinutes=meta&&meta.totalMinutes?meta.totalMinutes:0;
+ ytDuration=meta&&meta.duration?meta.duration:0;
+ ytSessionSeconds=0;
+ let createPlayer=function(){
+  ytPlayer=new YT.Player("ytHolder",{
+   videoId:id,
+   playerVars:{rel:0,modestbranding:1,playsinline:1},
+   events:{
+    onReady:function(ev){ytDuration=ev.target.getDuration()||ytDuration; if(ytMaxWatched>1)ev.target.seekTo(ytMaxWatched,true);},
+    onStateChange:function(ev){
+     if(ev.data===YT.PlayerState.PLAYING){
+      if(ytCheckTimer)clearInterval(ytCheckTimer);
+      ytCheckTimer=setInterval(ytTick,1000);
+     }else{
+      if(ytCheckTimer){clearInterval(ytCheckTimer);ytCheckTimer=null;}
+      saveVideoProgress();
+     }
+    }
+   }
+  });
+ };
+ if(ytApiReady&&window.YT&&window.YT.Player)createPlayer();else window.__ytPendingInit=createPlayer;
+}
+function ytTick(){
+ if(!ytPlayer||typeof ytPlayer.getCurrentTime!=="function")return;
+ let cur=0;
+ try{cur=ytPlayer.getCurrentTime();}catch(e){return}
+ if(cur>ytMaxWatched+3){
+  try{ytPlayer.seekTo(ytMaxWatched,true);}catch(e){}
+ }else if(cur>ytMaxWatched){
+  ytMaxWatched=cur;
+ }
+ ytSessionSeconds+=1;
+ let note=document.getElementById("ytProgressNote");
+ if(note)note.textContent="⏱️ Đã xem "+Math.round(ytSessionSeconds/60*10)/10+" phút trong lượt này · Tổng đã xem trước đó: "+ytBaseMinutes+" phút";
+ if(ytSessionSeconds%20===0)saveVideoProgress();
+}
+function saveVideoProgress(){
+ if(!ytVideoLessonId||!current||!current.u)return;
+ if(ytSessionSeconds<3)return;
+ let L=lessons[+ytVideoLessonId.split("-")[0]].find(x=>x.id===ytVideoLessonId);
+ if(!L)return;
+ let sessionMinutes=Math.round(ytSessionSeconds/60*10)/10;
+ let totalMinutes=Math.round((ytBaseMinutes+ytSessionSeconds/60)*10)/10;
+ let percent=ytDuration?Math.min(100,Math.round(ytMaxWatched/ytDuration*100)):0;
+ let videoId=L.id+"-video";
+ let old=results.find(x=>x.student===current.u&&x.lesson===videoId);
+ let sessions=(old&&old.videoMeta&&old.videoMeta.sessions)?old.videoMeta.sessions.slice():[];
+ let attempts=old&&old.attempts?old.attempts:0;
+ let isNewSession=!old||old._sessionLogged!==ytSessionStartTag();
+ if(isNewSession){
+  sessions.push({time:new Date().toISOString(),minutes:sessionMinutes});
+  if(sessions.length>10)sessions=sessions.slice(sessions.length-10);
+  attempts+=1;
+ }else{
+  if(sessions.length)sessions[sessions.length-1]={time:new Date().toISOString(),minutes:sessionMinutes};
+ }
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:videoId,title:L.title+" (Video)",score:percent,quizScore:null,speakScore:null,writeScore:null,status:"pending",attempts,time:new Date().toISOString(),videoMeta:{maxWatchedSeconds:Math.round(ytMaxWatched),duration:Math.round(ytDuration),totalMinutes,lastSessionMinutes:sessionMinutes,sessions},_sessionLogged:ytSessionStartTag()};
+ if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
+ onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ tiến độ video:",e));
+}
+let __ytSessionTag=null;
+function ytSessionStartTag(){if(!__ytSessionTag)__ytSessionTag=Date.now()+"-"+Math.random();return __ytSessionTag}
+function stopYouTubeTracking(){
+ if(ytCheckTimer){clearInterval(ytCheckTimer);ytCheckTimer=null;}
+ if(ytSessionSeconds>=3)saveVideoProgress();
+ if(ytPlayer&&typeof ytPlayer.destroy==="function"){try{ytPlayer.destroy();}catch(e){}}
+ ytPlayer=null;ytVideoLessonId=null;ytSessionSeconds=0;__ytSessionTag=null;
+}
 function jsEsc(s){return (s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
 function pickVoice(lang){
  if(!window.speechSynthesis)return null;
@@ -798,7 +888,7 @@ function submitLesson(){
  <button onclick="closeLesson()">✅ Đóng và quay lại danh sách bài học</button>
  </div>`;
 }
-function closeLesson(){lessonPanel.classList.add("hidden");studentPanel.classList.remove("hidden");loadLessons()}
+function closeLesson(){stopYouTubeTracking();lessonPanel.classList.add("hidden");studentPanel.classList.remove("hidden");loadLessons()}
 async function createStudentFromPanel(u,p,n,g,msgEl,createdBy){
  if(!u||!p||!n)return msgEl.textContent="❌ Nhập đầy đủ thông tin.";
  msgEl.textContent="⏳ Đang tạo tài khoản trên máy chủ...";
@@ -831,11 +921,11 @@ async function renderParentResults(){
   const kidUsernames=kidList.map(k=>k.username);
   await reloadResults();
   let rs=results.filter(r=>kidUsernames.includes(r.student)).sort((a,b)=>new Date(b.time)-new Date(a.time));
-  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
+  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
  }catch(e){console.error(e);parentResults.innerHTML="⚠️ Chưa tải được kết quả. Kiểm tra Supabase.";}
 }
 function renderTeacher(){
- let ss=users.filter(x=>x.role==="student"),pending=results.filter(x=>x.status==="pending");
+ let ss=users.filter(x=>x.role==="student"),pending=results.filter(x=>x.status==="pending"&&!(x.lesson||"").endsWith("-video"));
  studentCount.textContent=ss.length;pendingCount.textContent=pending.length;
  teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
 }
@@ -852,5 +942,7 @@ async function unlockAdvanced(u,l){
  if(!parentPanel.classList.contains("hidden"))renderParentResults();
 }
 window.addEventListener('load',()=>onlineLoad());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveVideoProgress();});
+window.addEventListener('beforeunload',()=>{saveVideoProgress();});
 </script>
 </body></html>
