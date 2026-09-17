@@ -243,7 +243,7 @@ for(let g=1;g<=12;g++){
  if(GRADE_CURRICULA[g]){
   GRADE_CURRICULA[g].forEach((u,idx)=>{
    lessons[g].push({id:`${g}-${idx+1}`,title:`Unit ${idx+1}: ${u.name}`,desc:`Theo SGK Tiếng Anh ${g} — Global Success (NXB Giáo dục Việt Nam).`,
-    vocab:u.vocab,grammar:u.grammar,sentence:u.sentence,quiz:u.quiz,advanced:u.advanced,video:u.video});
+    vocab:u.vocab,grammar:u.grammar,sentence:u.sentence,quiz:u.quiz,advanced:u.advanced,video:u.video,extra:u.extra,phrases:u.phrases,letter:u.letter});
   });
  }else{
   for(let i=1;i<=25;i++){
@@ -303,10 +303,10 @@ async function onlineLoad(){
   save();
 }
 function toDbResult(item){
- return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null,videometa:item.videoMeta?JSON.stringify(item.videoMeta):null};
+ return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null,videometa:item.videoMeta?JSON.stringify(item.videoMeta):null,testdata:item.testData?JSON.stringify(item.testData):null};
 }
 function fromDbResult(row){
- return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null,videoMeta:row.videometa?JSON.parse(row.videometa):null};
+ return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null,videoMeta:row.videometa?JSON.parse(row.videometa):null,testData:row.testdata?JSON.parse(row.testdata):null};
 }
 async function onlineSaveResult(item){
  return sbFetch('/rest/v1/results?on_conflict=student%2Clesson',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(toDbResult(item))});
@@ -320,6 +320,7 @@ let results=[], current=null, currentLesson=null;
 let speakState={attempted:false,passed:false,score:0}, quizState=[], listening=false;
 let writeItems=[], writeStates=[], writeRetrying=false;
 let advOpen=false, advAnswers=[], passAnswers=[], viewMode="full", advRetrying=false;
+let testBank=[], testAnswers=[], testRetrying=false;
 let flashActive=false, flashIndex=0, flashResults={}, flashSelected={}, flashOptCache={}, flashRetrying=false;
 let ytApiReady=false, ytPlayer=null, ytMaxWatched=0, ytDuration=0, ytSessionSeconds=0, ytCheckTimer=null, ytVideoLessonId=null, ytBaseMinutes=0;
 window.onYouTubeIframeAPIReady=function(){ytApiReady=true; if(window.__ytPendingInit){let f=window.__ytPendingInit;window.__ytPendingInit=null;f();}};
@@ -373,7 +374,8 @@ function loadLessons(){
  let fr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-flash");
  let wr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-write");
  let vr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-video");
- return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}${fr?`<span class="badge">🗂️ Flashcard: ${fr.score}%</span>`:""}${wr?`<span class="badge">✍️ Luyện viết: ${wr.score}%${wr.status==="retry"?" (chưa đạt)":""}</span>`:""}${vr&&vr.videoMeta?`<span class="badge">🎬 Video: đã xem ${vr.videoMeta.totalMinutes} phút (${vr.score}%)</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}</div>`}).join("")
+ let tr=results.find(x=>x.student===current.u&&x.lesson===l.id+"-test");
+ return `<div class="lesson" ${isRetry?'style="border-color:#d94b4b;border-width:2px"':''}><h3>${l.title}</h3><span class="badge">${status}</span>${r&&r.score!==undefined?`<span class="badge">Điểm: ${r.score}%</span>`:""}${attempts>0?`<span class="badge">Số lần làm: ${attempts}</span>`:""}${ar?`<span class="badge">🎓 Nâng cao: ${ar.score}%${ar.status==="retry"?" (chưa đạt)":""}</span>`:""}${fr?`<span class="badge">🗂️ Flashcard: ${fr.score}%</span>`:""}${wr?`<span class="badge">✍️ Luyện viết: ${wr.score}%${wr.status==="retry"?" (chưa đạt)":""}</span>`:""}${vr&&vr.videoMeta?`<span class="badge">🎬 Video: đã xem ${vr.videoMeta.totalMinutes} phút (${vr.score}%)</span>`:""}${tr?`<span class="badge">📝 Luyện đề: ${tr.score}%${tr.status==="retry"?" (chưa đạt)":""}</span>`:""}<p>${l.desc}</p><button ${isRetry?'class="red"':''} onclick="openLesson('${l.id}')">${isRetry?"⚠️ Học lại ngay":"Học bài"}</button>${l.advanced?`<button class="${ar&&ar.status==="retry"?"red":"gray"}" onclick="openAdvanced('${l.id}')" ${isRetry?"disabled title='Phải học lại và đạt bài cơ bản trước'":""}>${ar&&ar.status==="retry"?"⚠️ Làm lại bài nâng cao":"🎓 Nâng cao"}</button>`:""}<button class="${tr&&tr.status==="retry"?"red":"gray"}" onclick="openTest('${l.id}')" ${isRetry?"disabled title='Phải học lại bài chính trước'":""}>${tr&&tr.status==="retry"?"⚠️ Làm lại luyện đề":"📝 Luyện đề"}</button></div>`}).join("")
 }
 function buildWriteItems(L){
  let v=L.vocab,items=[];
@@ -528,6 +530,164 @@ function retryAdvanced(){
  passAnswers=L.advanced.passageQuiz?L.advanced.passageQuiz.map(()=>null):[];
  advRetrying=true;
  exercise.innerHTML=renderAdvancedContent();
+}
+function shuffleArr(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a}
+function wordFormDistractors(w){
+ let base=w.replace(/[^a-zA-Z]/g,"");
+ if(!base)return [w+"s",w+"ed"];
+ let opts=[];
+ if(/e$/.test(base))opts.push(base+"d");else opts.push(base+"ed");
+ if(/[^aeiou]e$/.test(base))opts.push(base.slice(0,-1)+"ing");else opts.push(base+"ing");
+ opts.push(base+"s");
+ return shuffleArr(opts).slice(0,2);
+}
+function makeErrorVersion(sentence){
+ let subs=[["\\bis\\b","are"],["\\bare\\b","is"],["\\bwas\\b","were"],["\\bwere\\b","was"],["\\bdoes\\b","do"],["\\bdo\\b","does"],["\\bhas\\b","have"],["\\bhave\\b","has"],["\\bam\\b","is"]];
+ for(let [pat,rep] of subs){
+  let re=new RegExp(pat);
+  if(re.test(sentence))return sentence.replace(re,rep);
+ }
+ let words=sentence.replace(/[.?!]$/,"").split(" ");
+ if(words.length>2){let i=Math.floor(words.length/2);words.splice(i,0,words[i]);return words.join(" ")+".";}
+ return sentence;
+}
+function reorderVersion(sentence){
+ let end=sentence.match(/[.?!]$/)?sentence.slice(-1):"";
+ let words=sentence.replace(/[.?!]$/,"").split(" ");
+ if(words.length<3)return sentence;
+ let shuffled=shuffleArr(words);
+ let tries=0;
+ while(shuffled.join(" ")===words.join(" ")&&tries<5){shuffled=shuffleArr(words);tries++;}
+ return shuffled.join(" ")+end;
+}
+function buildTestBank(L){
+ let qs=[];
+ let gradeNum=+L.id.split("-")[0];
+ let siblings=shuffleArr((lessons[gradeNum]||[]).filter(x=>x.id!==L.id&&x.grammar));
+ let g=L.grammar;
+ let dialogueLines=[];
+ if(L.advanced&&L.advanced.dialogue){
+  dialogueLines=L.advanced.dialogue.split("\n").map(l=>l.replace(/^[AB]:\s*/,"").replace(/^"|"$/g,"").trim()).filter(l=>l.length>12);
+ }
+ let sourceSentences=[g&&g.example,L.sentence,...dialogueLines].filter(Boolean);
+ let siblingSentences=shuffleArr((lessons[gradeNum]||[]).filter(x=>x.id!==L.id&&x.sentence).map(x=>x.sentence));
+
+ // PHẦN I — NGỮ PHÁP: chọn đáp án đúng để hoàn thành câu (cloze, giống đề thi thật)
+ if(g&&g.example){
+  let words=g.example.replace(/[.?!]/g,"").split(" ").filter(w=>w);
+  let candidateIdx=words.map((w,i)=>i).filter(i=>words[i].length>2&&/^[A-Za-z]+$/.test(words[i]));
+  let chosen=shuffleArr(candidateIdx).slice(0,Math.min(3,candidateIdx.length));
+  chosen.forEach(bi=>{
+   let missing=words[bi];
+   let blanked=words.map((w,i)=>i===bi?"______":w).join(" ")+".";
+   let distractors=wordFormDistractors(missing);
+   while(distractors.length<2)distractors.push(missing+"s");
+   qs.push({section:"I. NGỮ PHÁP",q:`Choose the correct word to complete the sentence:\n"${blanked}"`,opts:[missing,...distractors],ans:0,type:"grammar"});
+  });
+  let sib1=siblings[0]?siblings[0].grammar:null;
+  qs.push({section:"I. NGỮ PHÁP",q:"Choose the grammatically correct sentence:",opts:[g.example,makeErrorVersion(g.example),sib1?makeErrorVersion(sib1.example):"He don't like it."],ans:0,type:"grammar"});
+ }
+
+ // PHẦN II — TÌM LỖI SAI
+ shuffleArr(sourceSentences).slice(0,3).forEach(s=>{
+  let broken=makeErrorVersion(s);
+  if(broken===s)return;
+  let distractor=siblingSentences[Math.floor(Math.random()*siblingSentences.length)]||"They are doing their homework now.";
+  qs.push({section:"II. TÌM LỖI SAI",q:"Which sentence contains a grammatical error?",opts:[broken,s===distractor?"She enjoys reading books.":distractor,L.sentence&&L.sentence!==s?L.sentence:"He works hard every day."],ans:0,type:"error"});
+ });
+
+ // PHẦN III — SẮP XẾP CÂU
+ shuffleArr(sourceSentences).slice(0,2).forEach(s=>{
+  let jumbled=reorderVersion(s);
+  if(jumbled===s)return;
+  qs.push({section:"III. SẮP XẾP CÂU",q:`Choose the sentence with the correct word order (from: "${jumbled}"):`,opts:[s,reorderVersion(s),reorderVersion(s)],ans:0,type:"reorder"});
+ });
+
+ // PHẦN IV — ĐỌC HIỂU: dùng hội thoại/đoạn văn mở rộng nếu bài có
+ if(L.advanced){
+  (L.advanced.quiz||[]).forEach(q=>qs.push({section:"IV. ĐỌC HIỂU (Hội thoại)",q:q.q,opts:q.opts,ans:q.ans,type:"reading"}));
+  (L.advanced.passageQuiz||[]).forEach(q=>qs.push({section:"IV. ĐỌC HIỂU (Đoạn văn)",q:q.q,opts:q.opts,ans:q.ans,type:"reading"}));
+ }
+ return qs;
+}
+function openTest(id){
+ currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
+ viewMode="test";
+ testRetrying=false;
+ let existing=results.find(x=>x.student===current.u&&x.lesson===currentLesson.id+"-test");
+ if(existing&&existing.testData&&existing.testData.bank&&existing.testData.bank.length){
+  testBank=existing.testData.bank;
+  testAnswers=existing.testData.answers?existing.testData.answers.slice():testBank.map(()=>null);
+ }else{
+  testBank=buildTestBank(currentLesson);
+  testAnswers=testBank.map(()=>null);
+ }
+ studentPanel.classList.add("hidden");lessonPanel.classList.remove("hidden");
+ lessonTitle.textContent="📝 "+currentLesson.title+" — Luyện đề";
+ lessonDesc.textContent="Đề luyện tập tổng hợp gồm từ vựng và ngữ pháp"+(currentLesson.advanced?", có thêm câu từ phần nâng cao":"")+" của bài này.";
+ stopYouTubeTracking();videoHolder.innerHTML="";
+ exercise.innerHTML=renderTestContent();
+}
+function renderTestContent(){
+ let L=currentLesson;
+ let testResult=results.find(x=>x.student===current.u&&x.lesson===L.id+"-test");
+ let isSubmitted=!!testResult&&!testRetrying;
+ let isUnlocked=!!(testResult&&testResult.unlocked);
+ let lastSection=null;
+ let qHtml=testBank.map((q,qi)=>{
+  let picked=testAnswers[qi],answered=picked!==null&&picked!==undefined;
+  let sectionHeader="";
+  if(q.section&&q.section!==lastSection){sectionHeader=`<h4 style="margin-top:18px">${q.section}</h4>`;lastSection=q.section;}
+  return `${sectionHeader}<div class="lesson"><p><b>Câu ${qi+1}:</b> ${q.q.split("\\n").map(l=>`<span>${l}</span>`).join("<br>")}</p>${q.img?`<div style="font-size:36px;text-align:center">${q.img}</div>`:""}
+  ${q.opts.map((o,oi)=>{
+   let cls="option";
+   if(isSubmitted&&isUnlocked&&answered){if(oi===q.ans)cls+=" picked";else if(oi===picked)cls+=" bad";}
+   else if(answered&&oi===picked){cls+=" picked";}
+   return `<button class="${cls}" ${isSubmitted?"disabled":""} onclick="answerTest(${qi},${oi})">${o}</button>`;
+  }).join("")}
+  ${isSubmitted&&isUnlocked&&answered?`<p style="color:${picked===q.ans?'#15803d':'#b91c1c'}">${picked===q.ans?"✅ Chính xác!":"❌ Chưa đúng, đáp án đúng đã được đánh dấu."}</p>`:isSubmitted?`<p style="color:#687386">🔒 Đã nộp — chờ giáo viên/bố mẹ mở khóa để xem đáp án đúng.</p>`:""}</div>`;
+ }).join("");
+ let allAnswered=testAnswers.every(x=>x!==null&&x!==undefined);
+ let footer;
+ if(isSubmitted){
+  let needsRetry=testResult.status==="retry";
+  let passMsg=needsRetry?`⚠️ <b>Chưa đạt yêu cầu</b> (cần từ ${PASS_THRESHOLD}%). Hãy bấm "Làm lại" để luyện thêm nhé!`:testResult.status==="approved"?"✅ Giáo viên đã duyệt bài này.":"🎉 Đã đạt yêu cầu — bài đang chờ giáo viên duyệt.";
+  let unlockMsg=isUnlocked?"🔓 Giáo viên/bố mẹ đã mở khóa — đáp án đúng đã hiện ở trên.":"🔒 Đáp án đúng sẽ hiện ra khi giáo viên hoặc bố mẹ mở khóa.";
+  footer=`<div class="lesson" style="text-align:center;${needsRetry?'border-color:#d94b4b;border-width:2px':''}">
+  <p>${passMsg}</p><p>${unlockMsg}</p>
+  <p>Điểm luyện đề: <b>${testResult.score}%</b> (${testBank.length} câu)</p>
+  <button class="${needsRetry?'red':''}" onclick="retryTest()">🔁 Làm lại đề</button>
+  </div>`;
+ }else{
+  footer=`<button ${allAnswered?"":"disabled title='Hãy trả lời hết các câu trước khi nộp'"} onclick="submitTest()">📤 Nộp bài luyện đề</button>`;
+ }
+ return `<h3>📝 Đề luyện tập (${testBank.length} câu)</h3>${qHtml}${footer}`;
+}
+function answerTest(qi,oi){
+ let existing=results.find(x=>x.student===current.u&&x.lesson===currentLesson.id+"-test");
+ if(existing&&!testRetrying)return;
+ testAnswers[qi]=oi;
+ exercise.innerHTML=renderTestContent();
+}
+function submitTest(){
+ let L=currentLesson;
+ testRetrying=false;
+ let correct=testBank.filter((q,i)=>testAnswers[i]===q.ans).length;
+ let score=Math.round(correct/testBank.length*100);
+ let autoStatus=score>=PASS_THRESHOLD?"pending":"retry";
+ let testId=L.id+"-test";
+ let old=results.find(x=>x.student===current.u&&x.lesson===testId);
+ let attempts=old&&old.attempts?old.attempts+1:1;
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:testId,title:L.title+" (Luyện đề)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString(),unlocked:false,testData:{bank:testBank,answers:testAnswers}};
+ if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
+ onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
+ exercise.innerHTML=renderTestContent();
+}
+function retryTest(){
+ testRetrying=true;
+ testBank=buildTestBank(currentLesson);
+ testAnswers=testBank.map(()=>null);
+ exercise.innerHTML=renderTestContent();
 }
 function submitAdvanced(){
  let L=currentLesson;
@@ -921,13 +1081,13 @@ async function renderParentResults(){
   const kidUsernames=kidList.map(k=>k.username);
   await reloadResults();
   let rs=results.filter(r=>kidUsernames.includes(r.student)).sort((a,b)=>new Date(b.time)-new Date(a.time));
-  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
+  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
  }catch(e){console.error(e);parentResults.innerHTML="⚠️ Chưa tải được kết quả. Kiểm tra Supabase.";}
 }
 function renderTeacher(){
  let ss=users.filter(x=>x.role==="student"),pending=results.filter(x=>x.status==="pending"&&!(x.lesson||"").endsWith("-video"));
  studentCount.textContent=ss.length;pendingCount.textContent=pending.length;
- teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
+ teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
 }
 async function review(u,l,ok){let r=results.find(x=>x.student===u&&x.lesson===l);if(r)r.status=ok?"approved":"retry";save();try{await onlineReview(u,l,ok?"approved":"retry")}catch(e){console.warn(e)}
  if(!teacherPanel.classList.contains("hidden"))renderTeacher();
