@@ -54,6 +54,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div id="teacherPanel" class="card hidden">
 <h2>👨‍🏫 Khu vực giáo viên</h2>
 <div class="grid"><div><b>Học sinh</b><h2 id="studentCount">0</h2></div><div><b>Bài chờ đánh giá</b><h2 id="pendingCount">0</h2></div></div>
+<h3>👥 Học sinh do bạn quản lý</h3><div id="teacherStudentList">Đang tải...</div>
 <h3>Danh sách bài chờ đánh giá</h3><div id="teacherStudents"></div>
 <h3>➕ Tạo tài khoản học sinh</h3>
 <input id="tUser" placeholder="Tên đăng nhập học sinh"><input id="tPass" type="password" placeholder="Mật khẩu"><input id="tName" placeholder="Họ tên học sinh"><select id="tGrade"></select>
@@ -65,6 +66,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <h3>➕ Tạo tài khoản học sinh</h3>
 <input id="pUser" placeholder="Tên đăng nhập học sinh"><input id="pPass" type="password" placeholder="Mật khẩu"><input id="pName" placeholder="Họ tên học sinh"><select id="pGrade"></select>
 <button onclick="parentCreate()">Tạo tài khoản học sinh</button><p id="parentMsg"></p>
+<h3>👥 Con của bạn (tài khoản đang quản lý)</h3><div id="parentStudentList">Đang tải...</div>
 <h3>📊 Kết quả học tập của con</h3><div id="parentResults">Đang tải...</div>
 </div>
 
@@ -277,6 +279,7 @@ async function onlineLogin(u,p){const h=await sha256hex(p);return sbRpc('verify_
 async function onlineCreateStudent(u,p,n,g,createdBy=null){return onlineCreateAccount(u,p,n,'student',g,createdBy);}
 async function onlineLoginStudent(u,p){return onlineLogin(u,p);}
 async function onlineListAccounts(){return sbRpc('list_app_accounts');}
+async function onlineDeleteAccount(username){return sbRpc('delete_app_account',{p_username:username});}
 async function onlineListMyStudents(creator){return sbRpc('list_my_students',{p_creator:creator});}
 async function reloadResults(){try{const rs=await sbFetch('/rest/v1/results?select=*');results=Array.isArray(rs)?rs.map(fromDbResult):[];}catch(e){console.warn('Không tải được kết quả học tập:',e);}}
 function statusLabel(s){return s==="approved"?'<span class="ok">✅ Đạt</span>':s==="retry"?'<span class="bad">🔁 Học lại</span>':"⏳ Chờ duyệt";}
@@ -1065,7 +1068,7 @@ async function adminCreate(){
  catch(e){console.error(e);adminMsg.textContent="❌ Không tạo được tài khoản: "+(e.message||e);}
 }
 async function renderAdmin(){
- try{const arr=await onlineListAccounts();const list=Array.isArray(arr)?arr:[];const label={admin:"🛠️ Admin",teacher:"👨‍🏫 Giáo viên",parent:"👨‍👩‍👧 Bố/Mẹ",student:"👨‍🎓 Học sinh"};adminUsers.innerHTML=list.length?'<table><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Lớp</th></tr>'+list.map(x=>`<tr><td>${x.username||""}</td><td>${x.name||""}</td><td>${label[x.role]||x.role||""}</td><td>${x.grade||""}</td></tr>`).join("")+'</table>':"Chưa có tài khoản online.";}
+ try{const arr=await onlineListAccounts();const list=Array.isArray(arr)?arr:[];const label={admin:"🛠️ Admin",teacher:"👨‍🏫 Giáo viên",parent:"👨‍👩‍👧 Bố/Mẹ",student:"👨‍🎓 Học sinh"};adminUsers.innerHTML=list.length?'<table><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Lớp</th><th>Xóa</th></tr>'+list.map(x=>`<tr><td>${x.username||""}</td><td>${x.name||""}</td><td>${label[x.role]||x.role||""}</td><td>${x.grade||""}</td><td>${x.role==="admin"?"":`<button class="red" onclick="adminDeleteAccount('${x.username}','${x.role}')">🗑️ Xóa</button>`}</td></tr>`).join("")+'</table>':"Chưa có tài khoản online.";}
  catch(e){adminUsers.innerHTML="⚠️ Chưa tải được danh sách tài khoản. Hãy kiểm tra Supabase.";}
  try{
   await reloadResults();
@@ -1073,21 +1076,44 @@ async function renderAdmin(){
   adminResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Lớp</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.grade||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")+'</table>':"Chưa có bài nộp nào.";
  }catch(e){adminResults.innerHTML="⚠️ Chưa tải được kết quả học tập.";}
 }
+async function adminDeleteAccount(username,role){
+ if(role==="admin"){alert("Không thể xóa tài khoản quản trị viên từ đây.");return}
+ let label=role==="teacher"?"giáo viên":role==="parent"?"bố/mẹ":"học sinh";
+ let warn=role!=="student"?" Toàn bộ tài khoản học sinh do tài khoản này tạo ra sẽ KHÔNG bị xóa theo, nhưng sẽ không còn ai quản lý — bạn có thể cần chuyển giao hoặc xóa riêng.":"";
+ if(!confirm(`Xóa tài khoản ${label} "${username}"? Hành động này không thể hoàn tác.${warn}`))return;
+ try{
+  const d=await onlineDeleteAccount(username);
+  if(d&&d.ok===false)throw new Error(d.message||"Không xóa được tài khoản");
+  renderAdmin();
+ }catch(e){alert("❌ Không xóa được tài khoản: "+(e.message||e)+"\n\nLưu ý: cần có hàm RPC 'delete_app_account' trên Supabase để tính năng này hoạt động.");}
+}
 async function renderParentResults(){
  parentResults.innerHTML="Đang tải...";
+ parentStudentList.innerHTML="Đang tải...";
  try{
   const kids=await onlineListMyStudents(current.u);const kidList=Array.isArray(kids)?kids:[];
+  parentStudentList.innerHTML=kidList.length?'<table><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Lớp</th></tr>'+kidList.map(k=>`<tr><td>${k.username||""}</td><td>${k.name||""}</td><td>${k.grade||""}</td></tr>`).join("")+'</table>':"Bạn chưa tạo tài khoản học sinh nào.";
   if(!kidList.length){parentResults.innerHTML="Bạn chưa tạo tài khoản học sinh nào.";return;}
   const kidUsernames=kidList.map(k=>k.username);
   await reloadResults();
   let rs=results.filter(r=>kidUsernames.includes(r.student)).sort((a,b)=>new Date(b.time)-new Date(a.time));
   parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
- }catch(e){console.error(e);parentResults.innerHTML="⚠️ Chưa tải được kết quả. Kiểm tra Supabase.";}
+ }catch(e){console.error(e);parentStudentList.innerHTML="⚠️ Chưa tải được danh sách học sinh.";parentResults.innerHTML="⚠️ Chưa tải được kết quả. Kiểm tra Supabase.";}
 }
-function renderTeacher(){
- let ss=users.filter(x=>x.role==="student"),pending=results.filter(x=>x.status==="pending"&&!(x.lesson||"").endsWith("-video"));
- studentCount.textContent=ss.length;pendingCount.textContent=pending.length;
- teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
+async function renderTeacher(){
+ teacherStudents.innerHTML="Đang tải...";
+ teacherStudentList.innerHTML="Đang tải...";
+ try{
+  const kids=await onlineListMyStudents(current.u);
+  const kidList=Array.isArray(kids)?kids:[];
+  const kidUsernames=kidList.map(k=>k.username);
+  studentCount.textContent=kidList.length;
+  teacherStudentList.innerHTML=kidList.length?'<table><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Lớp</th></tr>'+kidList.map(k=>`<tr><td>${k.username||""}</td><td>${k.name||""}</td><td>${k.grade||""}</td></tr>`).join("")+'</table>':"Bạn chưa tạo tài khoản học sinh nào.";
+  await reloadResults();
+  let pending=results.filter(r=>kidUsernames.includes(r.student)&&r.status==="pending"&&!(r.lesson||"").endsWith("-video"));
+  pendingCount.textContent=pending.length;
+  teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
+ }catch(e){console.error(e);teacherStudentList.innerHTML="⚠️ Chưa tải được danh sách học sinh của bạn.";teacherStudents.innerHTML="⚠️ Chưa tải được danh sách bài chờ.";}
 }
 async function review(u,l,ok){let r=results.find(x=>x.student===u&&x.lesson===l);if(r)r.status=ok?"approved":"retry";save();try{await onlineReview(u,l,ok?"approved":"retry")}catch(e){console.warn(e)}
  if(!teacherPanel.classList.contains("hidden"))renderTeacher();
