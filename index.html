@@ -306,13 +306,28 @@ async function onlineLoad(){
   save();
 }
 function toDbResult(item){
- return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null,videometa:item.videoMeta?JSON.stringify(item.videoMeta):null,testdata:item.testData?JSON.stringify(item.testData):null};
+ return {student:item.student,studentname:item.studentName,grade:item.grade,lesson:item.lesson,title:item.title,score:item.score,quizscore:item.quizScore,speakscore:item.speakScore,writescore:item.writeScore,status:item.status,attempts:item.attempts,time:item.time,starttime:item.startTime||null,unlocked:item.unlocked||false,advanswers:item.advAnswers?JSON.stringify(item.advAnswers):null,passanswers:item.passAnswers?JSON.stringify(item.passAnswers):null,writeanswers:item.writeAnswers?JSON.stringify(item.writeAnswers):null,videometa:item.videoMeta?JSON.stringify(item.videoMeta):null,testdata:item.testData?JSON.stringify(item.testData):null};
 }
 function fromDbResult(row){
- return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null,videoMeta:row.videometa?JSON.parse(row.videometa):null,testData:row.testdata?JSON.parse(row.testdata):null};
+ return {student:row.student,studentName:row.studentname,grade:row.grade,lesson:row.lesson,title:row.title,score:row.score,quizScore:row.quizscore,speakScore:row.speakscore,writeScore:row.writescore,status:row.status,attempts:row.attempts,time:row.time,startTime:row.starttime||null,unlocked:row.unlocked||false,advAnswers:row.advanswers?JSON.parse(row.advanswers):null,passAnswers:row.passanswers?JSON.parse(row.passanswers):null,writeAnswers:row.writeanswers?JSON.parse(row.writeanswers):null,videoMeta:row.videometa?JSON.parse(row.videometa):null,testData:row.testdata?JSON.parse(row.testdata):null};
 }
 async function onlineSaveResult(item){
- return sbFetch('/rest/v1/results?on_conflict=student%2Clesson',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(toDbResult(item))});
+ const full=toDbResult(item);
+ try{
+  return await sbFetch('/rest/v1/results?on_conflict=student%2Clesson',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(full)});
+ }catch(e){
+  // Có thể Supabase chưa có các cột mới (unlocked/advanswers/passanswers/writeanswers/videometa/testdata).
+  // Thử lại chỉ với các cột cơ bản để KHÔNG làm mất việc lưu điểm chính.
+  const basic={student:full.student,studentname:full.studentname,grade:full.grade,lesson:full.lesson,title:full.title,score:full.score,quizscore:full.quizscore,speakscore:full.speakscore,writescore:full.writescore,status:full.status,attempts:full.attempts,time:full.time};
+  try{
+   const r=await sbFetch('/rest/v1/results?on_conflict=student%2Clesson',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(basic)});
+   console.warn('Đã lưu điểm cơ bản lên online, nhưng KHÔNG lưu được các dữ liệu mở rộng (khóa/mở khóa, câu trả lời chi tiết, thời gian xem video...) vì Supabase còn thiếu cột. Xem hướng dẫn thêm cột trong hội thoại trước.');
+   return r;
+  }catch(e2){
+   console.error('Không lưu được điểm lên online:',e2);
+   throw e2;
+  }
+ }
 }
 async function onlineReview(student,lesson,status){
  return sbFetch('/rest/v1/results?student=eq.'+encodeURIComponent(student)+'&lesson=eq.'+encodeURIComponent(lesson),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status})});
@@ -323,6 +338,7 @@ let results=[], current=null, currentLesson=null;
 let speakState={attempted:false,passed:false,score:0}, quizState=[], listening=false;
 let writeItems=[], writeStates=[], writeRetrying=false;
 let advOpen=false, advAnswers=[], passAnswers=[], viewMode="full", advRetrying=false;
+let lessonStartTime=null;
 let testBank=[], testAnswers=[], testRetrying=false;
 let flashActive=false, flashIndex=0, flashResults={}, flashSelected={}, flashOptCache={}, flashRetrying=false;
 let ytApiReady=false, ytPlayer=null, ytMaxWatched=0, ytDuration=0, ytSessionSeconds=0, ytCheckTimer=null, ytVideoLessonId=null, ytBaseMinutes=0;
@@ -362,7 +378,7 @@ function renderMyScores(){
  if(!mine.length){box.innerHTML="<p>Bạn chưa nộp bài nào.</p>";return}
  let avg=Math.round(mine.reduce((a,r)=>a+(r.score||0),0)/mine.length);
  box.innerHTML=`<p>📈 Điểm trung bình các bài đã làm: <b>${avg}%</b> · Tổng số bài đã nộp: <b>${mine.length}</b></p>
- <table><tr><th>Bài học</th><th>Điểm tổng</th><th>Bài tập</th><th>Phát âm</th><th>Viết</th><th>Trạng thái</th><th>Lần làm</th><th>Thời gian</th></tr>${mine.map(r=>`<tr><td>${r.title||r.lesson}</td><td><b>${r.score}%</b></td><td>${r.quizScore!==undefined&&r.quizScore!==null?r.quizScore+"%":"-"}</td><td>${r.speakScore!==undefined&&r.speakScore!==null?r.speakScore+"%":"-"}</td><td>${r.writeScore!==undefined&&r.writeScore!==null?r.writeScore+"%":"-"}</td><td>${statusLabel(r.status)}</td><td>${r.attempts||1}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")}</table>`;
+ <table><tr><th>Bài học</th><th>Điểm tổng</th><th>Bài tập</th><th>Phát âm</th><th>Viết</th><th>Trạng thái</th><th>Lần làm</th><th>Bắt đầu</th><th>Kết thúc</th></tr>${mine.map(r=>`<tr><td>${r.title||r.lesson}</td><td><b>${r.score}%</b></td><td>${r.quizScore!==undefined&&r.quizScore!==null?r.quizScore+"%":"-"}</td><td>${r.speakScore!==undefined&&r.speakScore!==null?r.speakScore+"%":"-"}</td><td>${r.writeScore!==undefined&&r.writeScore!==null?r.writeScore+"%":"-"}</td><td>${statusLabel(r.status)}</td><td>${r.attempts||1}</td><td>${r.startTime?new Date(r.startTime).toLocaleString():""}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")}</table>`;
 }
 function loadLessons(){
  let g=+studentGrade.value;
@@ -390,6 +406,7 @@ function buildWriteItems(L){
 function openLesson(id){
  currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
  viewMode="full";
+ lessonStartTime=new Date().toISOString();
  flashActive=false;flashIndex=0;flashResults={};flashSelected={};flashOptCache={};flashRetrying=false;
  writeRetrying=false;
  speakState={attempted:false,passed:false,score:0};
@@ -412,6 +429,7 @@ function openLesson(id){
 function openAdvanced(id){
  currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
  viewMode="advanced";
+ lessonStartTime=new Date().toISOString();
  advRetrying=false;
  let existingAdv=results.find(x=>x.student===current.u&&x.lesson===currentLesson.id+"-adv");
  if(existingAdv&&existingAdv.advAnswers){
@@ -616,6 +634,7 @@ function buildTestBank(L){
 function openTest(id){
  currentLesson=lessons[+id.split("-")[0]].find(x=>x.id===id);
  viewMode="test";
+ lessonStartTime=new Date().toISOString();
  testRetrying=false;
  let existing=results.find(x=>x.student===current.u&&x.lesson===currentLesson.id+"-test");
  if(existing&&existing.testData&&existing.testData.bank&&existing.testData.bank.length){
@@ -635,7 +654,6 @@ function renderTestContent(){
  let L=currentLesson;
  let testResult=results.find(x=>x.student===current.u&&x.lesson===L.id+"-test");
  let isSubmitted=!!testResult&&!testRetrying;
- let isUnlocked=!!(testResult&&testResult.unlocked);
  let lastSection=null;
  let qHtml=testBank.map((q,qi)=>{
   let picked=testAnswers[qi],answered=picked!==null&&picked!==undefined;
@@ -644,22 +662,21 @@ function renderTestContent(){
   return `${sectionHeader}<div class="lesson"><p><b>Câu ${qi+1}:</b> ${q.q.split("\\n").map(l=>`<span>${l}</span>`).join("<br>")}</p>${q.img?`<div style="font-size:36px;text-align:center">${q.img}</div>`:""}
   ${q.opts.map((o,oi)=>{
    let cls="option";
-   if(isSubmitted&&isUnlocked&&answered){if(oi===q.ans)cls+=" picked";else if(oi===picked)cls+=" bad";}
+   if(isSubmitted&&answered){if(oi===q.ans)cls+=" picked";else if(oi===picked)cls+=" bad";}
    else if(answered&&oi===picked){cls+=" picked";}
    return `<button class="${cls}" ${isSubmitted?"disabled":""} onclick="answerTest(${qi},${oi})">${o}</button>`;
   }).join("")}
-  ${isSubmitted&&isUnlocked&&answered?`<p style="color:${picked===q.ans?'#15803d':'#b91c1c'}">${picked===q.ans?"✅ Chính xác!":"❌ Chưa đúng, đáp án đúng đã được đánh dấu."}</p>`:isSubmitted?`<p style="color:#687386">🔒 Đã nộp — chờ giáo viên/bố mẹ mở khóa để xem đáp án đúng.</p>`:""}</div>`;
+  ${isSubmitted&&answered?`<p style="color:${picked===q.ans?'#15803d':'#b91c1c'}">${picked===q.ans?"✅ Chính xác!":"❌ Chưa đúng, đáp án đúng đã được đánh dấu."}</p>`:""}</div>`;
  }).join("");
  let allAnswered=testAnswers.every(x=>x!==null&&x!==undefined);
  let footer;
  if(isSubmitted){
   let needsRetry=testResult.status==="retry";
   let passMsg=needsRetry?`⚠️ <b>Chưa đạt yêu cầu</b> (cần từ ${PASS_THRESHOLD}%). Hãy bấm "Làm lại" để luyện thêm nhé!`:testResult.status==="approved"?"✅ Giáo viên đã duyệt bài này.":"🎉 Đã đạt yêu cầu — bài đang chờ giáo viên duyệt.";
-  let unlockMsg=isUnlocked?"🔓 Giáo viên/bố mẹ đã mở khóa — đáp án đúng đã hiện ở trên.":"🔒 Đáp án đúng sẽ hiện ra khi giáo viên hoặc bố mẹ mở khóa.";
   footer=`<div class="lesson" style="text-align:center;${needsRetry?'border-color:#d94b4b;border-width:2px':''}">
-  <p>${passMsg}</p><p>${unlockMsg}</p>
+  <p>${passMsg}</p>
   <p>Điểm luyện đề: <b>${testResult.score}%</b> (${testBank.length} câu)</p>
-  <button class="${needsRetry?'red':''}" onclick="retryTest()">🔁 Làm lại đề</button>
+  <button class="${needsRetry?'red':''}" onclick="retryTest()">🔁 Làm lại đề (đề mới, ngẫu nhiên)</button>
   </div>`;
  }else{
   footer=`<button ${allAnswered?"":"disabled title='Hãy trả lời hết các câu trước khi nộp'"} onclick="submitTest()">📤 Nộp bài luyện đề</button>`;
@@ -681,7 +698,7 @@ function submitTest(){
  let testId=L.id+"-test";
  let old=results.find(x=>x.student===current.u&&x.lesson===testId);
  let attempts=old&&old.attempts?old.attempts+1:1;
- let item={student:current.u,studentName:current.name,grade:current.grade,lesson:testId,title:L.title+" (Luyện đề)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString(),unlocked:false,testData:{bank:testBank,answers:testAnswers}};
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:testId,title:L.title+" (Luyện đề)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString(),startTime:lessonStartTime,unlocked:false,testData:{bank:testBank,answers:testAnswers}};
  if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
  onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
  exercise.innerHTML=renderTestContent();
@@ -704,7 +721,7 @@ function submitAdvanced(){
  let advId=L.id+"-adv";
  let old=results.find(x=>x.student===current.u&&x.lesson===advId);
  let attempts=old&&old.attempts?old.attempts+1:1;
- let item={student:current.u,studentName:current.name,grade:current.grade,lesson:advId,title:L.title+" (Nâng cao)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString(),unlocked:false,advAnswers:advAnswers.slice(),passAnswers:passAnswers.slice()};
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:advId,title:L.title+" (Nâng cao)",score,quizScore:score,speakScore:null,writeScore:null,status:autoStatus,attempts,time:new Date().toISOString(),startTime:lessonStartTime,unlocked:false,advAnswers:advAnswers.slice(),passAnswers:passAnswers.slice()};
  if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
  onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
  let statusMsg=autoStatus==="retry"?`⚠️ Điểm chưa đạt yêu cầu (cần từ ${PASS_THRESHOLD}%). Bạn nên xem lại phần nâng cao này.`:"🎉 Bài nâng cao đã gửi giáo viên và bố mẹ theo dõi.";
@@ -744,7 +761,7 @@ function submitWriting(){
  let writeId=L.id+"-write";
  let old=results.find(x=>x.student===current.u&&x.lesson===writeId);
  let attempts=old&&old.attempts?old.attempts+1:1;
- let item={student:current.u,studentName:current.name,grade:current.grade,lesson:writeId,title:L.title+" (Luyện viết)",score:avgScore,quizScore:avgScore,speakScore:null,writeScore:avgScore,status:autoStatus,attempts,time:new Date().toISOString(),unlocked:false,writeAnswers:writeStates.map(s=>({text:s.text,score:s.score,passed:s.passed}))};
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:writeId,title:L.title+" (Luyện viết)",score:avgScore,quizScore:avgScore,speakScore:null,writeScore:avgScore,status:autoStatus,attempts,time:new Date().toISOString(),startTime:lessonStartTime,unlocked:false,writeAnswers:writeStates.map(s=>({text:s.text,score:s.score,passed:s.passed}))};
  if(old)Object.assign(old,item);else{old=item;results.push(item);}save();
  onlineSaveResult(old).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
  renderExercise();
@@ -1034,7 +1051,7 @@ function submitLesson(){
  let autoStatus=finalScore>=PASS_THRESHOLD?"pending":"retry";
  let old=results.find(x=>x.student===current.u&&x.lesson===L.id);
  let attempts=old&&old.attempts?old.attempts+1:1;
- let item={student:current.u,studentName:current.name,grade:current.grade,lesson:L.id,title:L.title,score:finalScore,quizScore,speakScore:speakState.attempted?speakState.score:null,writeScore,status:autoStatus,attempts,time:new Date().toISOString()};
+ let item={student:current.u,studentName:current.name,grade:current.grade,lesson:L.id,title:L.title,score:finalScore,quizScore,speakScore:speakState.attempted?speakState.score:null,writeScore,status:autoStatus,attempts,time:new Date().toISOString(),startTime:lessonStartTime};
  if(old)Object.assign(old,item);else results.push(item);save();
  onlineSaveResult(item).catch(e=>console.warn("Chưa đồng bộ điểm online:",e));
  let statusMsg=autoStatus==="retry"?`⚠️ Điểm chưa đạt yêu cầu (cần từ ${PASS_THRESHOLD}%). Bạn cần học lại bài này.`:"🎉 Bài đã gửi giáo viên đánh giá.";
@@ -1073,7 +1090,7 @@ async function renderAdmin(){
  try{
   await reloadResults();
   let rs=[...results].sort((a,b)=>new Date(b.time)-new Date(a.time));
-  adminResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Lớp</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.grade||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")+'</table>':"Chưa có bài nộp nào.";
+  adminResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Lớp</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.grade||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.startTime?new Date(r.startTime).toLocaleString():""}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td></tr>`).join("")+'</table>':"Chưa có bài nộp nào.";
  }catch(e){adminResults.innerHTML="⚠️ Chưa tải được kết quả học tập.";}
 }
 async function adminDeleteAccount(username,role){
@@ -1097,7 +1114,7 @@ async function renderParentResults(){
   const kidUsernames=kidList.map(k=>k.username);
   await reloadResults();
   let rs=results.filter(r=>kidUsernames.includes(r.student)).sort((a,b)=>new Date(b.time)-new Date(a.time));
-  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Thời gian</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
+  parentResults.innerHTML=rs.length?'<table><tr><th>Học sinh</th><th>Bài học</th><th>Điểm</th><th>Số lần làm</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th><th>Phút xem video</th><th>Đáp án nâng cao</th><th>Yêu cầu</th></tr>'+rs.map(r=>`<tr><td>${r.studentName||r.student||""}</td><td>${r.title||r.lesson||""}</td><td>${r.score!==undefined?r.score+"%":""}</td><td>${r.attempts||1}</td><td>${statusLabel(r.status)}</td><td>${r.startTime?new Date(r.startTime).toLocaleString():""}</td><td>${r.time?new Date(r.time).toLocaleString():""}</td><td>${r.videoMeta?`Lần này: ${r.videoMeta.lastSessionMinutes}p · Tổng: ${r.videoMeta.totalMinutes}p`:""}</td><td>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?"🔓 Đã mở khóa":`<button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa</button>`):""}</td><td>${r.status==="retry"?"🔁 Đang yêu cầu làm lại":`<button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu làm lại</button>`}</td></tr>`).join("")+'</table>':"Con bạn chưa nộp bài nào.";
  }catch(e){console.error(e);parentStudentList.innerHTML="⚠️ Chưa tải được danh sách học sinh.";parentResults.innerHTML="⚠️ Chưa tải được kết quả. Kiểm tra Supabase.";}
 }
 async function renderTeacher(){
@@ -1112,7 +1129,7 @@ async function renderTeacher(){
   await reloadResults();
   let pending=results.filter(r=>kidUsernames.includes(r.student)&&r.status==="pending"&&!(r.lesson||"").endsWith("-video"));
   pendingCount.textContent=pending.length;
-  teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write|-test)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
+  teacherStudents.innerHTML=pending.length?pending.map(r=>`<div class="lesson"><b>${r.studentName}</b> · Lớp ${r.grade}<br>${r.title}<br>Bài tập: ${r.quizScore!==undefined?r.quizScore:r.score}% · Phát âm: ${(r.speakScore!==undefined&&r.speakScore!==null)?r.speakScore+"%":"chưa luyện"} · Chính tả: ${(r.writeScore!==undefined&&r.writeScore!==null)?r.writeScore+"%":"chưa luyện"} · Điểm tổng: ${r.score}% · Số lần làm: ${r.attempts||1}<br><button onclick="review('${r.student}','${r.lesson}',true)">✅ Đạt</button><button class="red" onclick="review('${r.student}','${r.lesson}',false)">🔁 Yêu cầu học lại</button>${/(-adv|-write)$/.test(r.lesson||"")?(r.unlocked?' <span class="badge">🔓 Đã mở khóa</span>':` <button onclick="unlockAdvanced('${r.student}','${r.lesson}')">🔓 Mở khóa đáp án</button>`):""}</div>`).join(""):"Không có bài đang chờ.";
  }catch(e){console.error(e);teacherStudentList.innerHTML="⚠️ Chưa tải được danh sách học sinh của bạn.";teacherStudents.innerHTML="⚠️ Chưa tải được danh sách bài chờ.";}
 }
 async function review(u,l,ok){let r=results.find(x=>x.student===u&&x.lesson===l);if(r)r.status=ok?"approved":"retry";save();try{await onlineReview(u,l,ok?"approved":"retry")}catch(e){console.warn(e)}
